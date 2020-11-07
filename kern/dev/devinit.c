@@ -12,7 +12,13 @@
 #include "intr.h"
 #include "tsc.h"
 
+#include <kern/lib/buf.h>
+#include <kern/dev/disk/ide.h>
+
 void intr_init(void);
+void bufcache_init(void);
+void inode_init(void);
+void file_init(void);
 
 void devinit(uintptr_t mbi_addr)
 {
@@ -39,6 +45,12 @@ void devinit(uintptr_t mbi_addr)
     trap_init(0);
 
     pmmap_init(mbi_addr);
+
+    bufcache_init();  // buffer cache
+    file_init();      // file table
+    inode_init();     // inode cache
+    ide_init();
+    KERN_INFO("[BSP KERN] IDE disk driver initialized\n");
 }
 
 void devinit_ap(void)

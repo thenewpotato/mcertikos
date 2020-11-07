@@ -12,23 +12,12 @@
 #include <thread/PTQueueInit/export.h>
 #include <thread/PThread/export.h>
 
-#ifdef TEST
-extern bool test_PKCtxNew(void);
-extern bool test_PTCBInit(void);
-extern bool test_PTQueueInit(void);
-extern bool test_PThread(void);
-#endif
-
 extern uint32_t pcpu_ncpu(void);
-extern int pcpu_boot_ap(uint32_t cpu_idx, void (*f)(void), uintptr_t stack_addr);
 
 static volatile int cpu_booted = 0;
 static volatile int all_ready = FALSE;
-static void kern_main_ap(void);
 
 extern uint8_t _binary___obj_user_idle_idle_start[];
-extern uint8_t _binary___obj_user_pingpong_ping_start[];
-extern uint8_t _binary___obj_user_pingpong_pong_start[];
 
 static void kern_main(void)
 {
@@ -37,62 +26,20 @@ static void kern_main(void)
     KERN_INFO("[BSP KERN] Number of CPUs in this system: %d. \n", pcpu_ncpu());
 
     int cpu_idx = get_pcpu_idx();
-    int i;
     unsigned int pid;
 
-    all_ready = FALSE;
-    for (i = 1; i < pcpu_ncpu(); i++) {
-        KERN_INFO("[BSP KERN] Boot CPU %d .... \n", i);
+    pid = proc_create(_binary___obj_user_idle_idle_start, 10000);
+    KERN_INFO("CPU%d: process idle %d is created.\n", cpu_idx, pid);
+    tqueue_remove(NUM_IDS, pid);
+    tcb_set_state(pid, TSTATE_RUN);
+    set_curid(pid);
+    kctx_switch(0, pid);
 
-        bsp_kstack[i].cpu_idx = i;
-        pcpu_boot_ap(i, kern_main_ap, (uintptr_t) &bsp_kstack[i]);
-
-        while (get_pcpu_boot_info(i) == FALSE);
-
-        KERN_INFO("[BSP KERN] done.\n");
-    }
-
-    all_ready = TRUE;
-
-#ifdef TEST
-    dprintf("Testing the PKCtxNew layer...\n");
-    if (test_PKCtxNew() == 0) {
-        dprintf("All tests passed.\n");
-    } else {
-        dprintf("Test failed.\n");
-    }
-    dprintf("\n");
-
-    dprintf("Testing the PTCBInit layer...\n");
-    if (test_PTCBInit() == 0) {
-        dprintf("All tests passed.\n");
-    } else {
-        dprintf("Test failed.\n");
-    }
-    dprintf("\n");
-
-    dprintf("Testing the PTQueueInit layer...\n");
-    if (test_PTQueueInit() == 0) {
-        dprintf("All tests passed.\n");
-    } else {
-        dprintf("Test failed.\n");
-    }
-    dprintf("\n");
-
-    dprintf("Testing the PThread layer...\n");
-    if (test_PThread() == 0) {
-        dprintf("All tests passed.\n");
-    } else {
-        dprintf("Test failed.\n");
-    }
-    dprintf("\n");
-    dprintf("\nTest complete. Please Use Ctrl-a x to exit qemu.");
-#endif
+    KERN_PANIC("kern_main() should never reach here.\n");
 }
 
 static void kern_main_ap(void)
 {
-    unsigned int pid, pid2;
     int cpu_idx = get_pcpu_idx();
 
     set_pcpu_boot_info(cpu_idx, TRUE);
@@ -102,32 +49,6 @@ static void kern_main_ap(void)
     KERN_INFO("[AP%d KERN] kernel_main_ap\n", cpu_idx);
 
     cpu_booted++;
-
-#ifndef TEST
-    if (cpu_idx == 1) {
-        pid = proc_create(_binary___obj_user_pingpong_ping_start, 1000);
-        KERN_INFO("CPU%d: process ping1 %d is created.\n", cpu_idx, pid);
-        pid2 = proc_create(_binary___obj_user_pingpong_ping_start, 1000);
-        KERN_INFO("CPU%d: process ping2 %d is created.\n", cpu_idx, pid2);
-        proc_create(_binary___obj_user_idle_idle_start, 1000);
-    }
-    else if (cpu_idx == 2) {
-        pid = proc_create(_binary___obj_user_pingpong_pong_start, 1000);
-        KERN_INFO("CPU%d: process pong1 %d is created.\n", cpu_idx, pid);
-        pid2 = proc_create(_binary___obj_user_pingpong_pong_start, 1000);
-        KERN_INFO("CPU%d: process pong2 %d is created.\n", cpu_idx, pid2);
-        proc_create(_binary___obj_user_idle_idle_start, 1000);
-    }
-    else
-        return;
-
-    tqueue_remove(NUM_IDS + cpu_idx, pid);
-    tcb_set_state(pid, TSTATE_RUN);
-    set_curid(pid);
-    kctx_switch(0, pid);
-
-    KERN_PANIC("kern_main_ap() should never reach here.\n");
-#endif
 }
 
 void kern_init(uintptr_t mbi_addr)

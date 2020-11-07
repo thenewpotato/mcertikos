@@ -6,6 +6,7 @@
 #include <pcpu/PCPUIntro/export.h>
 
 #include "import.h"
+#include <kern/fs/sysfile.h>
 
 void syscall_dispatch(tf_t *tf)
 {
@@ -61,11 +62,34 @@ void syscall_dispatch(tf_t *tf)
          */
         sys_yield(tf);
         break;
-    case SYS_produce:
-        sys_produce(tf);
+
+    /** Filesystem calls **/
+    case SYS_open:
+        sys_open(tf);
         break;
-    case SYS_consume:
-        sys_consume(tf);
+    case SYS_close:
+        sys_close(tf);
+        break;
+    case SYS_read:
+        sys_read(tf);
+        break;
+    case SYS_write:
+        sys_write(tf);
+        break;
+    case SYS_mkdir:
+        sys_mkdir(tf);
+        break;
+    case SYS_chdir:
+        sys_chdir(tf);
+        break;
+    case SYS_link:
+        sys_link(tf);
+        break;
+    case SYS_unlink:
+        sys_unlink(tf);
+        break;
+    case SYS_stat:
+        sys_fstat(tf);
         break;
     default:
         syscall_set_errno(tf, E_INVAL_CALLNR);

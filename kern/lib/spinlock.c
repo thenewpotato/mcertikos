@@ -28,7 +28,7 @@ void spinlock_acquire_A(spinlock_t *lk)
 {
     uint64_t start_tsc = rdtsc();
 
-    while (&lk->lock != 0) {
+    while (xchg(&lk->lock, 1) != 0) {
         if (rdtsc() - start_tsc > tsc_per_ms * 3000)
             KERN_WARN("Possible deadlock 0x%08x.\n", lk);
         pause();

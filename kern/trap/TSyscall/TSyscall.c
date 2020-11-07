@@ -45,7 +45,7 @@ void sys_puts(tf_t *tf)
         }
 
         sys_buf[cur_pid][nbytes] = '\0';
-        KERN_INFO("From cpu %d: %s", get_pcpu_idx(), sys_buf[cur_pid]);
+        KERN_INFO("%s", sys_buf[cur_pid]);
 
         remain -= nbytes;
         cur_pos += nbytes;
@@ -57,6 +57,7 @@ void sys_puts(tf_t *tf)
 extern uint8_t _binary___obj_user_pingpong_ping_start[];
 extern uint8_t _binary___obj_user_pingpong_pong_start[];
 extern uint8_t _binary___obj_user_pingpong_ding_start[];
+extern uint8_t _binary___obj_user_fstest_fstest_start[];
 
 /**
  * Spawns a new child process.
@@ -81,9 +82,26 @@ void sys_spawn(tf_t *tf)
     unsigned int new_pid;
     unsigned int elf_id, quota;
     void *elf_addr;
+    unsigned int curid = get_curid();
 
     elf_id = syscall_get_arg2(tf);
     quota = syscall_get_arg3(tf);
+
+    if (!container_can_consume(curid, quota)) {
+        syscall_set_errno(tf, E_EXCEEDS_QUOTA);
+        syscall_set_retval1(tf, NUM_IDS);
+        return;
+    }
+    else if (NUM_IDS < curid * MAX_CHILDREN + 1 + MAX_CHILDREN) {
+        syscall_set_errno(tf, E_MAX_NUM_CHILDEN_REACHED);
+        syscall_set_retval1(tf, NUM_IDS);
+        return;
+    }
+    else if (container_get_nchildren(curid) == MAX_CHILDREN) {
+        syscall_set_errno(tf, E_INVAL_CHILD_ID);
+        syscall_set_retval1(tf, NUM_IDS);
+        return;
+    }
 
     switch (elf_id) {
     case 1:
@@ -94,6 +112,9 @@ void sys_spawn(tf_t *tf)
         break;
     case 3:
         elf_addr = _binary___obj_user_pingpong_ding_start;
+        break;
+    case 4:
+        elf_addr = _binary___obj_user_fstest_fstest_start;
         break;
     default:
         syscall_set_errno(tf, E_INVAL_PID);
@@ -121,23 +142,5 @@ void sys_spawn(tf_t *tf)
 void sys_yield(tf_t *tf)
 {
     thread_yield();
-    syscall_set_errno(tf, E_SUCC);
-}
-
-void sys_produce(tf_t *tf)
-{
-    unsigned int i;
-    for (i = 0; i < 5; i++) {
-        KERN_DEBUG("CPU %d: Process %d: Produced %d\n", get_pcpu_idx(), get_curid(), i);
-    }
-    syscall_set_errno(tf, E_SUCC);
-}
-
-void sys_consume(tf_t *tf)
-{
-    unsigned int i;
-    for (i = 0; i < 5; i++) {
-        KERN_DEBUG("CPU %d: Process %d: Consumed %d\n", get_pcpu_idx(), get_curid(), i);
-    }
     syscall_set_errno(tf, E_SUCC);
 }

@@ -110,3 +110,14 @@ int memcmp(const void *v1, const void *v2, size_t n)
 
     return 0;
 }
+
+char *strncpy(char *s, const char *t, int n)
+{
+    char *os;
+
+    os = s;
+    while (n-- > 0 && (*s++ = *t++) != 0) {}
+    while (n-- > 0)
+        *s++ = 0;
+    return os;
+}

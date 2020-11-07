@@ -34,8 +34,15 @@ enum __syscall_nr {
     SYS_puts = 0,   /* output a string to the screen */
     SYS_spawn,      /* create a new process */
     SYS_yield,      /* yield to another process */
-    SYS_produce,
-    SYS_consume,
+    SYS_open,
+    SYS_close,
+    SYS_read,
+    SYS_write,
+    SYS_mkdir,
+    SYS_chdir,
+    SYS_link,
+    SYS_unlink,
+    SYS_stat,
 
     MAX_SYSCALL_NR  /* XXX: always put it at the end of __syscall_nr */
 };
@@ -67,6 +74,10 @@ enum __error_nr {
     E_EXCEEDS_QUOTA,
     E_MAX_NUM_CHILDEN_REACHED,
     E_INVAL_CHILD_ID,
+    E_NEXIST,        /* file does not exist */
+    E_CREATE,        /* file does not exist */
+    E_FNF,           /* file not found */
+    E_BADF,          /* bad file descriptor */
     MAX_ERROR_NR     /* XXX: always put it at the end of __error_nr */
 };
 
