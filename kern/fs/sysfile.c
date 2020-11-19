@@ -257,12 +257,6 @@ void sys_open(tf_t *tf)
     struct file *f;
     struct inode *ip;
 
-    static int first = TRUE;
-    if (first) {
-        first = FALSE;
-        log_init();
-    }
-
     pt_copyin(get_curid(), syscall_get_arg2(tf), path, 128);
     omode = syscall_get_arg3(tf);
 
