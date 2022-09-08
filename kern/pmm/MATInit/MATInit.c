@@ -21,7 +21,8 @@ void pmem_init(unsigned int mbi_addr)
 {
     unsigned int nps;
 
-    // TODO: Define your local variables here.
+    unsigned int highest_addr = 0;
+    unsigned int nrows;
 
     // Calls the lower layer initialization primitive.
     // The parameter mbi_addr should not be used in the further code.
@@ -33,7 +34,16 @@ void pmem_init(unsigned int mbi_addr)
      * Hint: Think of it as the highest address in the ranges of the memory map table,
      *       divided by the page size.
      */
-    // TODO
+    nrows = get_size();
+    // Loop through rows in the physical memory map table and find the highest address in the ranges of the table
+    for (unsigned int i = 0; i < nrows; i++) {
+        unsigned int end_addr = get_mms(i) + get_mml(i);
+        if (end_addr > highest_addr) {
+            highest_addr = end_addr;
+        }
+    }
+    // Rounding down is okay, because we cannot make use of partial pages
+    nps = highest_addr / PAGESIZE;
 
     set_nps(nps);  // Setting the value computed above to NUM_PAGES.
 
@@ -60,5 +70,33 @@ void pmem_init(unsigned int mbi_addr)
      *    the addresses are in a usable range. Currently, we do not utilize partial pages,
      *    so in that case, you should consider those pages as unavailable.
      */
-    // TODO
+    // Set kernel page permissions
+    for (unsigned int i = 0; i < VM_USERLO_PI; i++) {
+        at_set_perm(i, 1);
+    }
+    for (unsigned int i = VM_USERHI_PI; i < nps; i++) {
+        at_set_perm(i, 1);
+    }
+    // Set non-kernel page permissions
+    for (unsigned int i = VM_USERLO_PI; i < VM_USERHI_PI; i++) {
+        // Page boundaries are [page_start_addr, page_end_addr)
+        unsigned int page_start_addr = i * PAGESIZE;
+        unsigned int page_end_addr = (i + 1) * PAGESIZE;
+        int found_usable_range = 0;
+        for (unsigned int j = 0; j < nrows; j++) {
+            // Range boundaries are [range_start_addr, range_end_addr)
+            unsigned int range_start_addr = get_mms(j);
+            unsigned int range_end_addr = range_start_addr + get_mml(j);
+            if (page_start_addr >= range_start_addr && page_end_addr <= range_end_addr && is_usable(j)) {
+                // We've found a usable range that contains this page
+                found_usable_range = 1;
+                break;
+            }
+        }
+        if (found_usable_range) {
+            at_set_perm(i, 2);
+        } else {
+            at_set_perm(i, 0);
+        }
+    }
 }

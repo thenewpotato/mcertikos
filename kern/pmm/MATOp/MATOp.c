@@ -23,7 +23,13 @@
  */
 unsigned int palloc()
 {
-    // TODO
+    // TODO: optimize!
+    for (unsigned int i = VM_USERLO_PI; i < VM_USERHI_PI; i++) {
+        if (at_is_norm(i) && !at_is_allocated(i)) {
+            at_set_allocated(i, 1);
+            return i;
+        }
+    }
     return 0;
 }
 
@@ -37,5 +43,6 @@ unsigned int palloc()
  */
 void pfree(unsigned int pfree_index)
 {
-    // TODO
+    // TODO: validate page index?
+    at_set_allocated(pfree_index, 0);
 }
