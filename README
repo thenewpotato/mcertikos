@@ -3,3 +3,40 @@ Run tests: make clean && make TEST=1
 Run in qemu: make qemu / make qemu-nox
 Debug with gdb: make qemu-gdb / make qemu-nox-gdb
                 (in another terminal) gdb
+
+Collaborators
+=============
+- Tiger Wang (jw2723)
+- Jackie Dong (jd2598)
+
+Question Responses
+==================
+Question A
+----------
+1. The switch from 16- to 32-bit mode is caused by the assembly instruction at line 107 in boot1.S (movl %eax, %cr0). This instruction, taken together with instructions on lines 105-106 in the same file, set the lowest bit (bit 0) of the %cr0 register to 1. According to page 88 of the Intel 80386 Programmer’s Reference Manual 1986, setting bit 0 to 1 causes the CPU to switch from real mode (16 bit) to 32 bit protected mode.
+
+    After line 107 in boot1.S, the CPU starts executing 32-bit code. The jump instruction on line 111 in boot1.S is the first instruction that is executed in 32-bit mode. The code section that the CPU jumps to (protcseg) also proceeds to be executed in 32-bit mode.
+
+2. The last instruction the bootloader executes is `jmp *%edx` (line 10 of exec_kernel.S). This instruction jumps to the kernel entrypoint.
+
+    The first instruction of the kernel is `cli` on line 21 of kern/init/entry.S.
+
+3. The `cli` instruction occurs on line 21 of kern/init/entry.S. During execution, the kernel instructions have been loaded into memory at fixed memory addresses. The `cli` instruction is located at memory address 0x1023f0.
+
+4. The bootloader first reads 8 sectors from disk in order to fetch the kernel's ELF header into memory. This happens on line 48 of boot1main.c. Then the bootloader iterates over each program segment of the kernel, according to the list of program segments in the ELF header. For each program segment, the bootloader loads as many sectors as necessary to load the entire program segment from disk into memory. This happens on lines 58-60 of boot1main.c. The number of sectors depends on the size of each program segment in bytes, which is given by ph->p_memsz. This process is repeated for each program segment listed in the kernel ELF header.
+
+Code Description
+================
+MATIntro
+--------
+In this layer, we implemented several functions that serve as getters and setters for the permission and allocation state of each physical page in physical memory.
+
+MATInit
+----
+In this layer, we first identified the maximum number of pages available to us in physical memory and then initialized our physical memory allocation table. When initializing our physical memory allocation table we first mark all non-kernel pages as initially unavailable. Then we proceed to search the memory map table to determine the permission of each page. A page’s permissions are normal if and only if it is fully contained in the memory map table and it is usable, otherwise the page is reserved by bios. 
+Finally, we marked pages reserved by the kernel as unallocated and reserved by the kernel.
+
+MATOp
+----
+In this layer, we implemented functions to allocate and free physical pages of memory. When designing our page allocator, we initially proceeded with an unoptimized brute force approach of looping through the entire allocation table until we found the first free page. To optimize this approach, we decided to keep track of the first available page where we start the search for an unallocated page so that we wouldn’t have to loop through the entire allocation table each time when allocating a new page. 
+

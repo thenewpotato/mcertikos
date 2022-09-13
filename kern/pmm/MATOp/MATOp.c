@@ -7,6 +7,8 @@
 #define VM_USERLO_PI (VM_USERLO / PAGESIZE)
 #define VM_USERHI_PI (VM_USERHI / PAGESIZE)
 
+unsigned int first_available = VM_USERLO_PI;
+
 /**
  * Allocate a physical page.
  *
@@ -23,10 +25,10 @@
  */
 unsigned int palloc()
 {
-    // TODO: optimize!
-    for (unsigned int i = VM_USERLO_PI; i < VM_USERHI_PI; i++) {
+    for (unsigned int i = first_available; i < VM_USERHI_PI; i++) {
         if (at_is_norm(i) && !at_is_allocated(i)) {
             at_set_allocated(i, 1);
+            first_available = i + 1;
             return i;
         }
     }
@@ -43,6 +45,8 @@ unsigned int palloc()
  */
 void pfree(unsigned int pfree_index)
 {
-    // TODO: validate page index?
     at_set_allocated(pfree_index, 0);
+    if (pfree_index < first_available) {
+        first_available = pfree_index;
+    }
 }

@@ -7,6 +7,15 @@
 #define VM_USERLO_PI (VM_USERLO / PAGESIZE)
 #define VM_USERHI_PI (VM_USERHI / PAGESIZE)
 
+// Computes ceil(x, y).
+unsigned int ceil(unsigned int x, unsigned int y) {
+    if (x % y == 0) {
+        return x / y;
+    } else {
+        return (x / y) + 1;
+    }
+}
+
 /**
  * The initialization function for the allocation table AT.
  * It contains two major parts:
@@ -70,33 +79,30 @@ void pmem_init(unsigned int mbi_addr)
      *    the addresses are in a usable range. Currently, we do not utilize partial pages,
      *    so in that case, you should consider those pages as unavailable.
      */
+    // Initialize all non-kernel pages to unavailable
+    for (unsigned int i = VM_USERLO_PI; i < VM_USERHI_PI; i++) {
+        at_set_perm(i, 0);
+    }
+    // Loop through memory table rows to find available pages
+    for (unsigned int rowindex = 0; rowindex < nrows; rowindex++) {
+        // Range boundaries are [range_start_addr, range_end_addr)
+        unsigned int range_start_addr = get_mms(rowindex);
+        unsigned int range_end_addr = range_start_addr + get_mml(rowindex);
+        unsigned int usable = is_usable(rowindex);
+        // Page boundaries are [pageindex*PAGESIZE, (pageindex+1)*PAGESIZE)
+        for (unsigned int pageindex = ceil(range_start_addr, PAGESIZE); pageindex < range_end_addr / PAGESIZE; pageindex++) {
+            if (usable) {
+                at_set_perm(pageindex, 2);
+            } else {
+                at_set_perm(pageindex, 0);
+            }
+        }
+    }
     // Set kernel page permissions
     for (unsigned int i = 0; i < VM_USERLO_PI; i++) {
         at_set_perm(i, 1);
     }
     for (unsigned int i = VM_USERHI_PI; i < nps; i++) {
         at_set_perm(i, 1);
-    }
-    // Set non-kernel page permissions
-    for (unsigned int i = VM_USERLO_PI; i < VM_USERHI_PI; i++) {
-        // Page boundaries are [page_start_addr, page_end_addr)
-        unsigned int page_start_addr = i * PAGESIZE;
-        unsigned int page_end_addr = (i + 1) * PAGESIZE;
-        int found_usable_range = 0;
-        for (unsigned int j = 0; j < nrows; j++) {
-            // Range boundaries are [range_start_addr, range_end_addr)
-            unsigned int range_start_addr = get_mms(j);
-            unsigned int range_end_addr = range_start_addr + get_mml(j);
-            if (page_start_addr >= range_start_addr && page_end_addr <= range_end_addr && is_usable(j)) {
-                // We've found a usable range that contains this page
-                found_usable_range = 1;
-                break;
-            }
-        }
-        if (found_usable_range) {
-            at_set_perm(i, 2);
-        } else {
-            at_set_perm(i, 0);
-        }
     }
 }
