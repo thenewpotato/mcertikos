@@ -21,7 +21,7 @@ Question A
 
     The first instruction of the kernel is `cli` on line 21 of kern/init/entry.S.
 
-3. The `cli` instruction occurs on line 21 of kern/init/entry.S. During execution, the kernel instructions have been loaded into memory at fixed memory addresses. The `cli` instruction is located at memory address 0x1023f0.
+3. The `cli` instruction occurs on line 21 of kern/init/entry.S. During execution, the kernel instructions have been loaded into memory at fixed memory addresses. The first instruction of the kernel (the`cli` instruction) is located at memory address 0x1023f0.
 
 4. The bootloader first reads 8 sectors from disk in order to fetch the kernel's ELF header into memory. This happens on line 48 of boot1main.c. Then the bootloader iterates over each program segment of the kernel, according to the list of program segments in the ELF header. For each program segment, the bootloader loads as many sectors as necessary to load the entire program segment from disk into memory. This happens on lines 58-60 of boot1main.c. The number of sectors depends on the size of each program segment in bytes, which is given by ph->p_memsz. This process is repeated for each program segment listed in the kernel ELF header.
 
@@ -33,8 +33,7 @@ In this layer, we implemented several functions that serve as getters and setter
 
 MATInit
 ----
-In this layer, we first identified the maximum number of pages available to us in physical memory and then initialized our physical memory allocation table. When initializing our physical memory allocation table we first mark all non-kernel pages as initially unavailable. Then we proceed to search the memory map table to determine the permission of each page. A page’s permissions are normal if and only if it is fully contained in the memory map table and it is usable, otherwise the page is reserved by bios. 
-Finally, we marked pages reserved by the kernel as unallocated and reserved by the kernel.
+In this layer, we first identified the maximum number of pages available to us in physical memory and then initialized our physical memory allocation table. When initializing our physical memory allocation table we first mark all non-kernel pages as initially unavailable. Then we proceed to search the memory map table to determine the permission of each page. A page’s permissions are normal if and only if it is fully contained in the memory map table and it is usable, otherwise the page is reserved by bios. Finally, we marked pages reserved by the kernel as unallocated and reserved by the kernel.
 
 MATOp
 ----
