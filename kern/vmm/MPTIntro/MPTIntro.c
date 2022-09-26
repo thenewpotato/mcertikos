@@ -87,7 +87,13 @@ unsigned int get_ptbl_entry(unsigned int proc_index, unsigned int pde_index,
     {
         return 0;
     }
-    return PDirPool[proc_index][pde_index][pte_index];
+    // The page directory entry contains permission bits!
+    unsigned int pd_entry = (unsigned int) PDirPool[proc_index][pde_index];
+    // Clear permission bits to obtain page table address
+    unsigned int pt_addr = (pd_entry >> 12) << 12;
+    unsigned int *page_table = (unsigned int *) pt_addr;
+
+    return page_table[pte_index];
 }
 
 // Sets the specified page table entry with the start address of physical page # [page_index]
@@ -99,7 +105,13 @@ void set_ptbl_entry(unsigned int proc_index, unsigned int pde_index,
     unsigned int entry = page_index << 12;
     entry = entry | perm;
 
-    PDirPool[proc_index][pde_index][pte_index] = entry;
+    // The page directory entry contains permission bits!
+    unsigned int pd_entry = (unsigned int) PDirPool[proc_index][pde_index];
+    // Clear permission bits to obtain page table address
+    unsigned int pt_addr = (pd_entry >> 12) << 12;
+    unsigned int *page_table = (unsigned int *) pt_addr;
+
+    page_table[pte_index] = entry;
 }
 
 // Sets up the specified page table entry in IDPTbl as the identity map.
@@ -119,5 +131,11 @@ void set_ptbl_entry_identity(unsigned int pde_index, unsigned int pte_index,
 void rmv_ptbl_entry(unsigned int proc_index, unsigned int pde_index,
                     unsigned int pte_index)
 {
-    PDirPool[proc_index][pde_index][pte_index] = 0;
+    // The page directory entry contains permission bits!
+    unsigned int pd_entry = (unsigned int) PDirPool[proc_index][pde_index];
+    // Clear permission bits to obtain page table address
+    unsigned int pt_addr = (pd_entry >> 12) << 12;
+    unsigned int *page_table = (unsigned int *) pt_addr;
+    
+    page_table[pte_index] = 0;
 }

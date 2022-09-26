@@ -2,6 +2,12 @@
 
 #include "import.h"
 
+#define PAGESIZE     4096
+#define VM_USERLO    0x40000000
+#define VM_USERHI    0xF0000000
+#define VM_USERLO_PI (VM_USERLO / PAGESIZE)
+#define VM_USERHI_PI (VM_USERHI / PAGESIZE)
+
 unsigned int get_pde_index(unsigned int vaddr)
 {
     return vaddr >> 22;
@@ -23,10 +29,12 @@ unsigned int get_page_offset(unsigned int vaddr)
  */
 unsigned int get_ptbl_entry_by_va(unsigned int proc_index, unsigned int vaddr)
 {
-    // TODO Make note about returning 0, since if mapping doesn't exist entry is 0
     unsigned int pde_index = get_pde_index(vaddr);
     unsigned int pte_index = get_pte_index(vaddr);
 
+    // "Not exist" means (Ed #107)
+    // - The page directory entry corresponding to that virtual address is 0; or
+    // - The page table entry corresponding to that virtual address is 0.
     if (get_pdir_entry(proc_index, pde_index) == 0) {
         return 0;
     }
@@ -81,13 +89,22 @@ void set_pdir_entry_by_va(unsigned int proc_index, unsigned int vaddr,
 // While the permission for the rest should be PTE_P and PTE_W.
 void idptbl_init(unsigned int mbi_addr)
 {
-    // TODO: Ask about how to differentiate where Kernel memory is vs rest of memory
-    // - Is there a macro VM_USERLO? 
     container_init(mbi_addr);
+
+    unsigned int VM_USERLO_PDE = get_pde_index(VM_USERLO);
+    unsigned int VM_USERLO_PTE = get_pte_index(VM_USERLO);
+    unsigned int VM_USERHI_PDE = get_pde_index(VM_USERHI);
+    unsigned int VM_USERHI_PTE = get_pte_index(VM_USERHI);
+
     for(unsigned int pde_index = 0; pde_index < 1024; pde_index++){
         for(unsigned int pte_index = 0; pte_index < 1024; pte_index++){
-            set_ptbl_entry_identity(pde_index, pte_index, PTE_P | PTE_W | PTE_G);
+            if (pde_index >= VM_USERLO_PDE && pte_index >= VM_USERLO_PTE && pde_index < VM_USERHI_PDE && pte_index < VM_USERHI_PTE) {
+                // This page is in user-space
+                set_ptbl_entry_identity(pde_index, pte_index, PTE_P | PTE_W);
+            } else {
+                // This page is in kernel-space
+                set_ptbl_entry_identity(pde_index, pte_index, PTE_P | PTE_W | PTE_G);
+            }
         }
     }
-    // TODO
 }

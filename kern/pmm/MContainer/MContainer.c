@@ -152,6 +152,7 @@ unsigned int container_alloc(unsigned int id)
 // Frees the physical page and reduces the usage by 1.
 void container_free(unsigned int id, unsigned int page_index)
 {
+    // Ed #110: Can assume only called for process that allocated page_index
     /*
      * TODO: Ask about error checking ; is there anything else we need to check
      * Should we check page index, and if usage is 0 / negative
