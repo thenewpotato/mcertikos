@@ -8,20 +8,10 @@
 #define VM_USERLO_PI (VM_USERLO / PAGESIZE)
 #define VM_USERHI_PI (VM_USERHI / PAGESIZE)
 
-unsigned int get_pde_index(unsigned int vaddr)
-{
-    return vaddr >> 22;
-}
+#define PDE_OF_ADDR(addr)   (addr >> 22)
+#define PTE_OF_ADDR(addr)   ((addr << 10) >> 22)
+#define PI_FROM_PDE_PTE(pde,pte)  ((pde << 10) | pte)
 
-unsigned int get_pte_index(unsigned int vaddr)
-{
-    return (vaddr << 10) >> 22;
-}
-
-unsigned int get_page_offset(unsigned int vaddr)
-{
-    return (vaddr << 20) >> 20;
-}
 /**
  * Returns the page table entry corresponding to the virtual address,
  * according to the page structure of process # [proc_index].
@@ -29,8 +19,8 @@ unsigned int get_page_offset(unsigned int vaddr)
  */
 unsigned int get_ptbl_entry_by_va(unsigned int proc_index, unsigned int vaddr)
 {
-    unsigned int pde_index = get_pde_index(vaddr);
-    unsigned int pte_index = get_pte_index(vaddr);
+    unsigned int pde_index = PDE_OF_ADDR(vaddr);
+    unsigned int pte_index = PTE_OF_ADDR(vaddr);
 
     // "Not exist" means (Ed #107)
     // - The page directory entry corresponding to that virtual address is 0; or
@@ -45,7 +35,7 @@ unsigned int get_ptbl_entry_by_va(unsigned int proc_index, unsigned int vaddr)
 // Returns the page directory entry corresponding to the given virtual address.
 unsigned int get_pdir_entry_by_va(unsigned int proc_index, unsigned int vaddr)
 {
-    unsigned int pde_index = get_pde_index(vaddr);
+    unsigned int pde_index = PDE_OF_ADDR(vaddr);
 
     return get_pdir_entry(proc_index, pde_index);
 }
@@ -53,15 +43,15 @@ unsigned int get_pdir_entry_by_va(unsigned int proc_index, unsigned int vaddr)
 // Removes the page table entry for the given virtual address.
 void rmv_ptbl_entry_by_va(unsigned int proc_index, unsigned int vaddr)
 {
-    unsigned int pde_index = get_pde_index(vaddr);
-    unsigned int pte_index = get_pte_index(vaddr);
+    unsigned int pde_index = PDE_OF_ADDR(vaddr);
+    unsigned int pte_index = PTE_OF_ADDR(vaddr);
     rmv_ptbl_entry(proc_index, pde_index, pte_index);
 }
 
 // Removes the page directory entry for the given virtual address.
 void rmv_pdir_entry_by_va(unsigned int proc_index, unsigned int vaddr)
 {
-    unsigned int pde_index = get_pde_index(vaddr);
+    unsigned int pde_index = PDE_OF_ADDR(vaddr);
     rmv_pdir_entry(proc_index, pde_index);
 }
 
@@ -71,8 +61,8 @@ void set_ptbl_entry_by_va(unsigned int proc_index, unsigned int vaddr,
                           unsigned int page_index, unsigned int perm)
 {
 
-    unsigned int pde_index = get_pde_index(vaddr);
-    unsigned int pte_index = get_pte_index(vaddr);
+    unsigned int pde_index = PDE_OF_ADDR(vaddr);
+    unsigned int pte_index = PTE_OF_ADDR(vaddr);
     set_ptbl_entry(proc_index, pde_index, pte_index, page_index, perm);
 }
 
@@ -80,7 +70,7 @@ void set_ptbl_entry_by_va(unsigned int proc_index, unsigned int vaddr,
 void set_pdir_entry_by_va(unsigned int proc_index, unsigned int vaddr,
                           unsigned int page_index)
 {
-    unsigned int pde_index = get_pde_index(vaddr);
+    unsigned int pde_index = PDE_OF_ADDR(vaddr);
     set_pdir_entry(proc_index, pde_index, page_index);
 }
 
@@ -91,14 +81,10 @@ void idptbl_init(unsigned int mbi_addr)
 {
     container_init(mbi_addr);
 
-    unsigned int VM_USERLO_PDE = get_pde_index(VM_USERLO);
-    unsigned int VM_USERLO_PTE = get_pte_index(VM_USERLO);
-    unsigned int VM_USERHI_PDE = get_pde_index(VM_USERHI);
-    unsigned int VM_USERHI_PTE = get_pte_index(VM_USERHI);
-
     for(unsigned int pde_index = 0; pde_index < 1024; pde_index++){
         for(unsigned int pte_index = 0; pte_index < 1024; pte_index++){
-            if (pde_index >= VM_USERLO_PDE && pte_index >= VM_USERLO_PTE && pde_index < VM_USERHI_PDE && pte_index < VM_USERHI_PTE) {
+            unsigned int page_index = PI_FROM_PDE_PTE(pde_index, pte_index);
+            if (page_index >= VM_USERLO_PI && page_index < VM_USERHI_PI) {
                 // This page is in user-space
                 set_ptbl_entry_identity(pde_index, pte_index, PTE_P | PTE_W);
             } else {

@@ -26,7 +26,8 @@ void pdir_init(unsigned int mbi_addr)
             if (pde < VM_USERLO_PDE || pde >= VM_USERHI_PDE) {
                 set_pdir_entry_identity(proc, pde);
             } else {
-                // TODO: Are user entries already 0? Or do we set them to 0?
+                // Set page directory entries in the user-space range to 0
+                rmv_pdir_entry(proc, pde);
             }
         }
     }

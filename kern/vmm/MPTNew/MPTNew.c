@@ -16,8 +16,20 @@
 unsigned int alloc_page(unsigned int proc_index, unsigned int vaddr,
                         unsigned int perm)
 {
-    // TODO
-    return 0;
+    unsigned int new_page = container_alloc(proc_index);
+    if (new_page == 0) {
+        // Failed to allocate page (e.g., quota exceeded), return error code
+        return MagicNumber;
+    }
+    
+    unsigned int pdir_entry_index = map_page(proc_index, vaddr, new_page, perm);
+    if (pdir_entry_index == MagicNumber) {
+        // Failed to map page, clean up and return error code
+        container_free(proc_index, new_page);
+        return MagicNumber;
+    }
+
+    return pdir_entry_index;
 }
 
 /**
