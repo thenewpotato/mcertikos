@@ -3,6 +3,15 @@
 
 #include "import.h"
 
+#define PAGESIZE 4096
+#define VM_USERLO 0x40000000
+#define VM_USERHI 0xF0000000
+#define VM_USERLO_PI (VM_USERLO / PAGESIZE)
+#define VM_USERHI_PI (VM_USERHI / PAGESIZE)
+
+#define PDE_OF_ADDR(addr) (addr >> 22)
+#define VM_USERLO_PDE PDE_OF_ADDR(VM_USERLO)
+#define VM_USERHI_PDE PDE_OF_ADDR(VM_USERHI)
 /**
  * Sets the entire page map for process 0 as the identity map.
  * Note that part of the task is already completed by pdir_init.
@@ -12,8 +21,11 @@ void pdir_init_kern(unsigned int mbi_addr)
     // TODO: Define your local variables here.
 
     pdir_init(mbi_addr);
-
-    //TODO
+    unsigned int proc = 0;
+    for (unsigned int pde = 0; pde < 1024; pde++)
+    {
+        set_pdir_entry_identity(proc, pde);
+    }
 }
 
 /**
@@ -28,6 +40,14 @@ unsigned int map_page(unsigned int proc_index, unsigned int vaddr,
                       unsigned int page_index, unsigned int perm)
 {
     // TODO
+    // unsigned int physical_page_index = alloc_ptbl(proc_index, vaddr);
+    // if (physical_page_index == 0)
+    // {
+    //     return MagicNumber;
+    // }
+
+    // If the current page directory entry is unallocated then we need to allocate a new pagetable
+
     return 0;
 }
 
