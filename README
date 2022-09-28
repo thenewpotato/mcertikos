@@ -2,13 +2,37 @@ Compile: make / make all
 Run tests: make clean && make TEST=1
 Run in qemu: make qemu / make qemu-nox
 Debug with gdb: make qemu-gdb / make qemu-nox-gdb
-                (in another terminal) gdb
+(in another terminal) gdb
 
 To use your solutions from lab 1: git merge lab1
 To use sample lab 1 solutions: copy files in samples/ to appropriate directories
 
 List here the following info:
+
 1. who you have worked with
 2. whether you coded this assignment together, and if not, who worked on which part
 3. brief description of what you have implemented
 4. and anything else you would like us to know
+
+# Collaborators
+
+- Tiger Wang (jw2723)
+- Jackie Dong (jd2598)
+
+We coded this assignment together
+
+# The MContainer Layer
+
+In the MContainer layer, we implemented various functions to assist in maintaining containers within the MCertikos OS. These containers are used within McCertikos to determine the resource usage of processes as well as the parent-child relationship between processes. We implemented several functions including container_init, container_get_parent, container_get_nchildren, container_get_quota, container_get_usage, container_can_consume, container_split, container_alloc, and container_free. In the container_init function we determined the number of unallocated pages that were unallocated and with normal permissions and initialized the kernel container with this information. Within the functions container_get_nchildren, container_get_quota, container_get_usage, container_get_usage, container_can_consume we returned relevant data pertaining to the process id passed in. In container_split we set up the´container structure when creating a new child process. Lastly, in container_alloc and container_free, we implemented the necessary logic for freeing a page for a process as well as allocating a new page for a process. In these functions, we also performed the necessary checks to ensure error handling.
+
+# The MPTIntro Layer
+
+In the MPTIntro Layer, we implemented several getter and setter functions responsible for retrieving and setting data to the page directory pool and identity table page mappings -- the two data structures used to maintain the processes' page tables. In this layer, we implemented the functions set_pdir_base, get_pdir_entry, set_pdir_entry, set_pdir_entry_identity, rmv_pdir_entry, get_ptbl_entry, set_ptbl_entry, set_ptbl_entry_identity, and rmv_ptbl_entry. In set_pdir_base we simply set the CR3 register to the start address of the page directory table for a given process. This enables the processor to translate linear addresses into physical addresses. In get_pdir_entry funciton we simply returned the page directory entry of the specified process in the page directory pool table. In set_pdir_entry_identity we set a specified page directory entry for a specific process to the initial address of the page directory in the identity page table. In rmv_pdir_entry we remove the specified page directory entry by setting it to 0. In get_ptbl_entry we return a specified processes' page table entry within the specified page directory. If the page page directory is uninitialized we don't return the entry but instead return 0. Further, since the permission info is also stored in the page directory entry we first retrieve the proper page table index by clearing the permissions bits. In set_ptbl_entry we set the page table entry within a specified processes' page directory with the physical page index combined with permissions. In set_ptbl_entry_identity we set up the specified page table entry along with permissions in the identity map table. Lastly, in rmv_ptbl_entry we remove a specified entry in a processes page table by setting it equal to 0.
+
+# The MPTOp Layer
+
+In the MPTOP Layer we implemented several getter and setter functions responsible for retrieving and setting information from the process directory pool table such as a specific page directory entry and a specific page table entry based off of a virtual address. The crux of this portion was getting the page directory entry, page table entry from a virtual address and then using the getter and setter functions defined in the MPTIntro Layer below. The PDE(page directory entry) of a virtual address is located in the upper 10 bits of the virtual address, the PTE(page atble entry) of a virtual address is located in the middle 12 bits and so we gathered this information from virtual addresses via bit shift manipulations. We also implemented the idptbl_init function which initializes the identity page table. For this function, we determined which regions of memory corresponded to kernel memory and set the page table entry in the identity table with present, writeable, and global permissions. For the remaining memory, we set the page table entry in the identity table with present and writeable. To determine what regions belonged to kernel memory vs user memory we used VM_USERLO and VM_USERHI to identify which page directory by retrieving the PDE and PTE values from both virtual addresses.
+
+# The MPTComm Layer
+
+In the MPTComm Layer we initialized the page directory entries within the process page directory pool table. If a region of memory belonged to the kernl, we mapped it to the identity table, if not we just initialized the entries to 0 with rmv_pdir_entry. In alloc_ptbl we allocated a page for a page table and associated it with a page directory entry for a specified virtual address and process. In free_ptbl we reversed the operation of alloc_ptbl, removing the page directory entry by setting it to 0 and freeing the physical page table.
