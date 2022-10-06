@@ -17,6 +17,20 @@ extern char STACK_LOC[NUM_IDS][PAGESIZE] gcc_aligned(PAGESIZE);
  */
 unsigned int kctx_new(void *entry, unsigned int id, unsigned int quota)
 {
-    // TODO
-    return 0;
+    if (container_can_consume(id, quota) == 0) {
+        // Current process does not have sufficient memory to create a child process with quota
+        return NUM_IDS;
+    }
+
+    unsigned int child_id = alloc_mem_quota(id, quota);
+
+    if (child_id == NUM_IDS) {
+        // If alloc_mem_quota fails, return error code
+        return NUM_IDS;
+    }
+
+    kctx_set_eip(child_id, entry);
+    kctx_set_esp(child_id, &STACK_LOC[child_id][PAGESIZE - 1]);
+
+    return child_id;
 }
