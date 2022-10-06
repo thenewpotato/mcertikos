@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="WebServers">
+    <option name="servers">
+      <webServer id="9a88d162-4f32-4aaa-839d-83b0faf5c5e4" name="zoo">
+        <fileTransfer rootFolder="/home/accts/jw2723" accessType="SFTP" host="node.zoo.cs.yale.edu" port="22" sshConfigId="9db41c26-fafb-4ffb-84c7-3c830b2fd5c9" sshConfig="jw2723@node.zoo.cs.yale.edu:22 key" keyPair="true">
+          <advancedOptions>
+            <advancedOptions dataProtectionLevel="Private" passiveMode="true" shareSSLContext="true" />
+          </advancedOptions>
+        </fileTransfer>
+      </webServer>
+    </option>
+  </component>
+</project>
