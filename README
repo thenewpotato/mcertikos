@@ -19,3 +19,7 @@ Questions
 In PKCtxNew where is the top of the stack is it at PAGESIZE - 1 or PAGESIZE
 
 PTQueueInit tqueue_remove: is the id guaranteed to be in the queue?
+
+PThread thread_spawn: what if kctx_new fails?
+
+TSyscallArg: how are syscall return values made visible to the user program?
