@@ -23,3 +23,7 @@ PTQueueInit tqueue_remove: is the id guaranteed to be in the queue?
 PThread thread_spawn: what if kctx_new fails?
 
 TSyscallArg: how are syscall return values made visible to the user program?
+
+How does sys_yield work? It only context switches the kernel thread?
+
+How to rigorously check PART 2?

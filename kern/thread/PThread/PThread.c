@@ -19,7 +19,6 @@ unsigned int thread_spawn(void *entry, unsigned int id, unsigned int quota)
 {
     unsigned int child_id = kctx_new(entry, id, quota);
     if (child_id == NUM_IDS) {
-        // TODO: What to do if it fails?
         return NUM_IDS;
     }
     tcb_set_state(child_id, TSTATE_READY);

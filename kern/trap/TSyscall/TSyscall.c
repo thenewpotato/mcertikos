@@ -77,7 +77,35 @@ extern uint8_t _binary___obj_user_fork_test_fork_test_start[];
  */
 void sys_spawn(void)
 {
-    // TODO
+    unsigned int elf_id = syscall_get_arg2();
+    unsigned int quota = syscall_get_arg3();
+    unsigned int child_id;
+    switch (elf_id) {
+        case 1:
+            child_id = proc_create(_binary___obj_user_pingpong_ping_start, quota);
+            break;
+        case 2:
+            child_id = proc_create(_binary___obj_user_pingpong_pong_start, quota);
+            break;
+        case 3:
+            child_id = proc_create(_binary___obj_user_pingpong_ding_start, quota);
+            break;
+        case 4:
+            child_id = proc_create(_binary___obj_user_fork_test_fork_test_start, quota);
+            break;
+        default:
+            syscall_set_errno(E_INVAL_PID);
+            syscall_set_retval1(NUM_IDS);
+            return;
+    }
+    if (child_id == NUM_IDS) {
+        syscall_set_errno(E_INVAL_PID);
+        syscall_set_retval1(NUM_IDS);
+        return;
+    } else {
+        syscall_set_errno(E_SUCC);
+        syscall_set_retval1(child_id);
+    }
 }
 
 /**
@@ -88,7 +116,8 @@ void sys_spawn(void)
  */
 void sys_yield(void)
 {
-    // TODO
+    syscall_set_errno(E_SUCC);
+    thread_yield();
 }
 
 // Your implementation of fork
