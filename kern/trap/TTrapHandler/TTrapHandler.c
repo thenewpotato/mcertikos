@@ -65,8 +65,11 @@ void pgflt_handler(void)
         pte_entry = get_ptbl_entry_by_va(cur_pid, fault_va);
         if (pte_entry & PTE_COW) {
             // handling copy-on-write
-            // TODO
-
+            int status = copy_cow_page(cur_pid, fault_va);
+            if (status == 0) {
+                // Failed to allocate new page during COW copying process
+                KERN_PANIC("Copy-on-write failed (out of physical memory): va = %p\n", fault_va);
+            }
         } else {
             KERN_PANIC("Writing to read-only page: va = %p\n", fault_va);
         }

@@ -73,12 +73,30 @@ unsigned int tqueue_dequeue(unsigned int chid)
 }
 
 /**
+ * Check if queue #chid contains TCB #pid
+ * @return 1 if contains, 0 otherwise
+ */
+int tqueue_contains(unsigned int chid, unsigned int pid) {
+    unsigned int current = tqueue_get_head(chid);
+    while (current != NUM_IDS) {
+        if (current == pid) {
+            return 1;
+        }
+        current = tcb_get_next(current);
+    }
+    return 0;
+}
+
+/**
  * Removes the TCB #pid from the queue #chid.
  * Hint: there are many cases in this function.
  */
 void tqueue_remove(unsigned int chid, unsigned int pid)
 {
-    // TODO: is it guaranteed that pid is in the queue?
+    // Return immediately if queue does not contain pid
+    if (tqueue_contains(chid, pid) == 0) {
+        return;
+    }
     if (tqueue_get_head(chid) == pid) {
         // Need to remove the only element OR Need to remove at head
         tqueue_dequeue(chid);

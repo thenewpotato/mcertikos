@@ -7,6 +7,7 @@
           <mappings>
             <mapping deploy="cs422/mcertikos/boot" local="$PROJECT_DIR$/boot" web="/" />
             <mapping deploy="cs422/mcertikos/kern" local="$PROJECT_DIR$/kern" web="/" />
+            <mapping deploy="cs422/mcertikos/user" local="$PROJECT_DIR$/user" web="/" />
           </mappings>
         </serverdata>
       </paths>

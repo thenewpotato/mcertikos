@@ -19,6 +19,20 @@ void set_ptbl_entry_identity(unsigned int pde_index, unsigned int pte_index,
 void rmv_ptbl_entry(unsigned int proc_index, unsigned int pde_index,
                     unsigned int pte_index);
 
+unsigned int alloc_ptbl(unsigned int proc_index, unsigned int vaddr);
+
+unsigned int get_pdir_entry_by_va(unsigned int proc_index, unsigned int vaddr);
+void set_pdir_entry_by_va(unsigned int proc_index, unsigned int vaddr,
+                          unsigned int page_index);
+void rmv_pdir_entry_by_va(unsigned int proc_index, unsigned int vaddr);
+unsigned int get_ptbl_entry_by_va(unsigned int proc_index, unsigned int vaddr);
+void set_ptbl_entry_by_va(unsigned int proc_index, unsigned int vaddr,
+                          unsigned int page_index, unsigned int perm);
+void rmv_ptbl_entry_by_va(unsigned int proc_index, unsigned int vaddr);
+
+unsigned int alloc_page(unsigned int proc_index, unsigned int vaddr,
+                        unsigned int perm);
+
 #endif  /* _KERN_ */
 
 #endif  /* !_KERN_VMM_MPTCOPY_H_ */

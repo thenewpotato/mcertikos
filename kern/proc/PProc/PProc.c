@@ -40,3 +40,17 @@ unsigned int proc_create(void *elf_addr, unsigned int quota)
 
     return pid;
 }
+
+unsigned int proc_fork() {
+    unsigned int current = get_curid();
+    unsigned int remaining_quota = container_get_quota(current) - container_get_usage(current);
+    unsigned int fork_quota = remaining_quota / 2;
+    unsigned int fork_pid = thread_spawn((void *) proc_start_user, current, fork_quota);
+    if (fork_pid != NUM_IDS) {
+        uctx_pool[fork_pid] = uctx_pool[current];
+        uctx_pool[current].regs.ebx = fork_pid;
+        uctx_pool[fork_pid].regs.ebx = 0;
+        copy_memory_map(current, fork_pid);
+    }
+    return fork_pid;
+}

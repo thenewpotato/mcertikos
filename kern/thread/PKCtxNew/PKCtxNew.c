@@ -30,7 +30,7 @@ unsigned int kctx_new(void *entry, unsigned int id, unsigned int quota)
     }
 
     kctx_set_eip(child_id, entry);
-    kctx_set_esp(child_id, &STACK_LOC[child_id][PAGESIZE - 1]);
+    kctx_set_esp(child_id, &STACK_LOC[child_id][PAGESIZE]);
 
     return child_id;
 }

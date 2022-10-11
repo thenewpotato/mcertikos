@@ -123,5 +123,9 @@ void sys_yield(void)
 // Your implementation of fork
 void sys_fork()
 {
-    // TODO
+    if (proc_fork() == NUM_IDS) {
+        syscall_set_errno(E_MEM);
+    } else {
+        syscall_set_errno(E_SUCC);
+    }
 }
