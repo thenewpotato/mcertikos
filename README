@@ -16,14 +16,12 @@ List here the following info:
 =========
 Questions
 
+How to rigorously check Part 2 and Part 3?
+
 In PKCtxNew where is the top of the stack is it at PAGESIZE - 1 or PAGESIZE
 
 PTQueueInit tqueue_remove: is the id guaranteed to be in the queue?
 
-PThread thread_spawn: what if kctx_new fails?
+Part 3 creating a new layer
 
-TSyscallArg: how are syscall return values made visible to the user program?
-
-How does sys_yield work? It only context switches the kernel thread?
-
-How to rigorously check PART 2?
+Which layer does Step 2 go in?
