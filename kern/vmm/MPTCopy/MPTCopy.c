@@ -19,7 +19,7 @@
  */
 int copy_memory_map(unsigned int proc_from, unsigned int proc_to) {
     for (unsigned int pde_index = 0; pde_index < 1024; pde_index++) {
-        if ((pde_index >= VM_USERLO_PDE) || (VM_USERHI_PDE > pde_index)) {
+        if ((pde_index >= VM_USERLO_PDE) && (pde_index < VM_USERHI_PDE)) {
             // Only copy user-space memory page table entries
             unsigned int pdir_entry_from = get_pdir_entry(proc_from, pde_index);
             unsigned int pdir_entry_to = get_pdir_entry(proc_to, pde_index);
@@ -39,18 +39,18 @@ int copy_memory_map(unsigned int proc_from, unsigned int proc_to) {
                 }
                 for (unsigned int pte_index = 0; pte_index < 1024; pte_index++) {
                     unsigned int ptbl_entry_from = get_ptbl_entry(proc_from, pde_index, pte_index);
-                    unsigned int ptbl_entry_page_index = ptbl_entry_from >> 12;
                     unsigned int ptbl_entry_perms_original = ptbl_entry_from & 0x00000fff;
-                    unsigned int ptbl_entry_perms_new = (ptbl_entry_perms_original | PTE_COW) & !PTE_W;
+                    unsigned int ptbl_entry_page_index = ptbl_entry_from >> 12;
+                    unsigned int ptbl_entry_perms_new = (ptbl_entry_perms_original | PTE_COW) & ~PTE_W;
                     set_ptbl_entry(proc_from, pde_index, pte_index, ptbl_entry_page_index, ptbl_entry_perms_new);
                     set_ptbl_entry(proc_to, pde_index, pte_index, ptbl_entry_page_index, ptbl_entry_perms_new);
                 }
             } else {
                 for (unsigned int pte_index = 0; pte_index < 1024; pte_index++) {
                     unsigned int ptbl_entry_from = get_ptbl_entry(proc_from, pde_index, pte_index);
-                    unsigned int ptbl_entry_page_index = ptbl_entry_from >> 12;
                     unsigned int ptbl_entry_perms_original = ptbl_entry_from & 0x00000fff;
-                    unsigned int ptbl_entry_perms_new = (ptbl_entry_perms_original | PTE_COW) & !PTE_W;
+                    unsigned int ptbl_entry_page_index = ptbl_entry_from >> 12;
+                    unsigned int ptbl_entry_perms_new = (ptbl_entry_perms_original | PTE_COW) & ~PTE_W;
                     set_ptbl_entry(proc_from, pde_index, pte_index, ptbl_entry_page_index, ptbl_entry_perms_new);
                     set_ptbl_entry(proc_to, pde_index, pte_index, ptbl_entry_page_index, ptbl_entry_perms_new);
                 }
@@ -73,14 +73,14 @@ int copy_cow_page(unsigned int pid, unsigned int vaddr) {
     unsigned int cow_page_frame = cow_ptbl_entry >> 12;
 
     // Make copied page writeable and non-COW
-    unsigned int new_perms = (cow_page_perms | PTE_W) & !PTE_COW;
-    unsigned int target_page_frame = alloc_page(pid, vaddr, new_perms);
-    if (target_page_frame == MagicNumber) {
+    unsigned int new_perms = (cow_page_perms | PTE_W) & ~PTE_COW;
+    if (alloc_page(pid, vaddr, new_perms) == MagicNumber) {
         // Return failure code if page allocation fails
         return 0;
     }
 
     // Copy the contents of the COW page to the target page
+    unsigned int target_page_frame = get_ptbl_entry_by_va(pid, vaddr) >> 12;
     for (unsigned int byte_index = 0; byte_index < PAGESIZE; byte_index++) {
         char * cow_paddr = (void *) ((cow_page_frame << 12) | byte_index);
         char * target_paddr = (void *) ((target_page_frame << 12) | byte_index);

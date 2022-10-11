@@ -70,14 +70,15 @@ void pgflt_handler(void)
                 // Failed to allocate new page during COW copying process
                 KERN_PANIC("Copy-on-write failed (out of physical memory): va = %p\n", fault_va);
             }
+            return;
         } else {
             KERN_PANIC("Writing to read-only page: va = %p\n", fault_va);
         }
     }
 
     // Uncomment this line to see information about the page fault
-    // KERN_DEBUG("Page fault: VA 0x%08x, errno 0x%08x, process %d, EIP 0x%08x.\n",
-    //            fault_va, errno, cur_pid, uctx_pool[cur_pid].eip);
+//     KERN_DEBUG("Page fault: VA 0x%08x, errno 0x%08x, process %d, EIP 0x%08x.\n",
+//                fault_va, errno, cur_pid, uctx_pool[cur_pid].eip);
 
     if (errno & PFE_PR) {
         KERN_PANIC("Permission denied: va = 0x%08x, errno = 0x%08x.\n",
