@@ -2,16 +2,16 @@ Compile: make / make all
 Run tests: make clean && make TEST=1
 Run in qemu: make qemu / make qemu-nox
 Debug with gdb: make qemu-gdb / make qemu-nox-gdb
-                (in another terminal) gdb
+(in another terminal) gdb
 
 To use your solutions from lab 1: git merge lab1
 To use sample lab 1 solutions: copy files in samples/ to appropriate directories
 
-List here the following info:
-1. who you have worked with
-2. whether you coded this assignment together, and if not, who worked on which part
-3. brief description of what you have implemented
-4. and anything else you would like us to know
+Collaborators
+=============
+- Tiger Wang (jw2723)
+- Jackie Dong (jd2598)
+
 
 =========
 Questions
@@ -25,3 +25,60 @@ PTQueueInit tqueue_remove: is the id guaranteed to be in the queue?
 Part 3 creating a new layer
 
 Which layer does Step 2 go in?
+
+
+Code Description
+================
+
+
+PART 1: Thread & Process Management
+==================================
+
+The PKCtxIntro Layer
+====================
+In this layer, we implemented the assembly function cswitch to enable context switching from the current kernel context thread to another kernel thread. We do this by first saving the current kernel context thread's states before loading in the new thread's states.
+
+The PKCtxNew Layer
+==================
+In this layer, we implemented kctx_new which creates a new child thread for the current process. We first allocate memory for the new child thread and then set its instruction pointer ($eip) to the given entry point and set its stack pointer ($esp) to the top of stack. 
+
+The PTCBInit Layer
+==================
+In this layer, we implemented tcb_init which is used to initialize all thread control blocks. We do this simply by looping through all of the NUM_ID threads and setting their state to dead and their prev and next threads both to NUM_IDS (NULL).
+
+
+The PTQueueInit Layer
+=====================
+In this layer, we implemented the functionality for initializing the thread queues and manipulating them. The functions that we implemented were tqueue_init, tqueue_enqueue, tqueue_dequeue, and tqueue_remove.
+Tqueue_init initializes the thread queues to just a head and tail thread which are both null. Tqeueue_enqueue appends a new pid to the end specified processes' thread queue. In this function we handle two cases -- if the queue is originally empty and if the queue is not empty. 
+Tqueue_dequeue removes a thread control block from the front of the specified processes' thread queue. In this function we handle different cases such as if the queue is empty, if the queue only contains one element, and if the queue contains multiple elements. In tqueue_remove, we remove the specified pid from the specified proccess's thread queue. In this function we handle several cases such as if the pid is not contained within the processes' thread queue, if there is only element in the thread queue, if the element is the last element and if the element is in the middle of the queue.
+
+
+The PThread Layer
+=================
+In this layer, we implement the functionality for spawning a new thread and also yielding to another thread. In thread_spawn we create a new kernel context for the specified process id. Further, we set this thread as ready to run and add it the ready queue. In thread yield, we yield to the next thread in the ready queue. We use our functions from the PTQueueInit Layer to retrieve the first ready thread from the ready queue and then add the current thread back to the ready queue.
+
+
+Part 2: Trap Handling
+=====================
+
+The TSycallArg Layer
+====================
+In this layer, we implement the functionality for retrieving the arguments from the user context and also returning values back to the user context (results of the invoked system call). For retrieving the arguments, we simlpy save the values of the currer user context in the user context pool.
+For returning the syscall return values to the running process that invoked the system call we simply update the respective register values for the current running process in the user context pool.
+
+The TSycall Layer
+=================
+In this layer we implemented the system calls sys_spawn and sys_yield. For sys spawn we simply create the corresponding proccess using proc_create based off of the sys_calls's elf id argument. Then, we return an errno and process id to the process indicating whether or not the system call succeeded or failed. In sys_yield, we simply set the error number and yield the current running thread.
+
+The TTrapHandler Layer
+======================
+In this layer, we implemented the exception handler and interrupt handler. For the exception handler, we either handle the exception as a page fault exception or as a default exception depending on the current process's trapno. In interrupt handler, we handle the interrupt as a spurious, timer, or default also based off of the trapno of the current process.
+
+
+Part 3: Copy-on-write and Fork
+==============================
+
+Implementing Fork
+=================
+For this part of the assignment we craeted a new layer called MPTCopy in kern/vmm. In this layer, we first implemented the functionality for copying the page directory and page tables for a specified process to another process. To do this, we looped through all the possible page directory entries and page table entries in the "from" process and copied over the contents (including permissions) into the "to" process's page directory and page table entries. In this layer, we also implemented the functionality to support copy on write. In our function copy_cow_page, we first allocate and map a new page for the page fault virtual address. Then, we copy over the contents of the shared page byte by byte to the newly mapped page. Further, we remove the cow permission bits and make the new writeable. In this part, we also implemented proc_fork, which is used for the system call sys_fork. In this function, we spawn a new thread and set the values for that new user context. Its context state is the same as its parents, except for its return value. We also set the parent processes' return value as the forked child's id and set the child id's return value to 0. Lastly, we the sys_fork system call, which simply called proc_fork and set the error number depending on if proc_fork succeeded.
