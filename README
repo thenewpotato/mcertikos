@@ -12,24 +12,8 @@ Collaborators
 - Tiger Wang (jw2723)
 - Jackie Dong (jd2598)
 
-
-=========
-Questions
-
-How to rigorously check Part 2 and Part 3?
-
-In PKCtxNew where is the top of the stack is it at PAGESIZE - 1 or PAGESIZE
-
-PTQueueInit tqueue_remove: is the id guaranteed to be in the queue?
-
-Part 3 creating a new layer
-
-Which layer does Step 2 go in?
-
-
 Code Description
 ================
-
 
 PART 1: Thread & Process Management
 ==================================
@@ -44,7 +28,7 @@ In this layer, we implemented kctx_new which creates a new child thread for the 
 
 The PTCBInit Layer
 ==================
-In this layer, we implemented tcb_init which is used to initialize all thread control blocks. We do this simply by looping through all of the NUM_ID threads and setting their state to dead and their prev and next threads both to NUM_IDS (NULL).
+In this layer, we implemented tcb_init which is used to initialize all thread control blocks. We do this simply by looping through all of the NUM_ID threads and setting their state to dead and their prev and next threads both to NUM_IDS (indicating null values).
 
 
 The PTQueueInit Layer
@@ -64,8 +48,8 @@ Part 2: Trap Handling
 
 The TSycallArg Layer
 ====================
-In this layer, we implement the functionality for retrieving the arguments from the user context and also returning values back to the user context (results of the invoked system call). For retrieving the arguments, we simlpy save the values of the currer user context in the user context pool.
-For returning the syscall return values to the running process that invoked the system call we simply update the respective register values for the current running process in the user context pool.
+In this layer, we implement the functionality for retrieving the arguments from the user context and also returning values back to the user context (results of the invoked system call). For retrieving the arguments, we simply return the appropriate register value in the user context struct for the current process.
+For setting the syscall return values and error numbers to the running process that invoked the system call we simply update the respective register values for the current running process in the user context pool.
 
 The TSycall Layer
 =================
@@ -81,4 +65,4 @@ Part 3: Copy-on-write and Fork
 
 Implementing Fork
 =================
-For this part of the assignment we craeted a new layer called MPTCopy in kern/vmm. In this layer, we first implemented the functionality for copying the page directory and page tables for a specified process to another process. To do this, we looped through all the possible page directory entries and page table entries in the "from" process and copied over the contents (including permissions) into the "to" process's page directory and page table entries. In this layer, we also implemented the functionality to support copy on write. In our function copy_cow_page, we first allocate and map a new page for the page fault virtual address. Then, we copy over the contents of the shared page byte by byte to the newly mapped page. Further, we remove the cow permission bits and make the new writeable. In this part, we also implemented proc_fork, which is used for the system call sys_fork. In this function, we spawn a new thread and set the values for that new user context. Its context state is the same as its parents, except for its return value. We also set the parent processes' return value as the forked child's id and set the child id's return value to 0. Lastly, we the sys_fork system call, which simply called proc_fork and set the error number depending on if proc_fork succeeded.
+For this part of the assignment we created a new layer called MPTCopy in kern/vmm. In this layer, we first implemented the functionality for copying the page directory and page tables for a specified process to another process. To do this, we looped through all the possible user page directory entries and page table entries in the "from" process and copied over the contents (including permissions) into the "to" process's page directory and page table entries (entries in the kernel address ranges are already correctly mapped to the identity table). In this layer, we also implemented the functionality to support copy on write. In our function copy_cow_page, we first allocate and map a new page for the page fault virtual address. Then, we copy over the contents of the shared page byte by byte to the newly mapped page. Further, we remove the cow permission bits and make the new page writeable. In this part, we also implemented proc_fork, which is used for the system call sys_fork. In this function, we spawn a new thread and set the values for that new user context. Its context state is the same as its parents, except for its return value. We set the parent process's return value as the forked child's id and set the child id's return value to 0. Lastly, we implement the sys_fork system call, which simply called proc_fork and set the error number depending on if proc_fork succeeded.
