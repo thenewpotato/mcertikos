@@ -9,6 +9,7 @@
 
 spinlock_t spawn_lock;
 spinlock_t yield_lock;
+unsigned int milliseconds_elapsed[NUM_CPUS];
 
 void thread_init(unsigned int mbi_addr)
 {
@@ -71,4 +72,13 @@ void thread_yield(void)
     }
 
     spinlock_release(&yield_lock);
+}
+
+void sched_update() {
+    int current_cpu = get_pcpu_idx();
+    milliseconds_elapsed[current_cpu] += 1000 / LAPIC_TIMER_INTR_FREQ;
+    if (milliseconds_elapsed[current_cpu] >= SCHED_SLICE) {
+        milliseconds_elapsed[current_cpu] = 0;
+        thread_yield();
+    }
 }
