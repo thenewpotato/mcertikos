@@ -19,7 +19,7 @@ void trap_init_array(void)
     inited = TRUE;
 }
 
-void trap_handler_register(int cpu_idx, int trapno, trap_cb_t cb)
+void trap_handler_register(unsigned int cpu_idx, int trapno, trap_cb_t cb)
 {
     KERN_ASSERT(0 <= cpu_idx && cpu_idx < 8);
     KERN_ASSERT(0 <= trapno && trapno < 256);
@@ -36,8 +36,15 @@ void trap_init(unsigned int cpu_idx)
 
     KERN_INFO_CPU("Register trap handlers...\n", cpu_idx);
 
-    // TODO: for CPU # [cpu_idx], register appropriate trap handler for each trap number,
-    // with trap_handler_register function defined above.
+    for (int trapno = 0; trapno < 256; trapno++) {
+        if (trapno == T_SYSCALL) {
+            trap_handler_register(cpu_idx, T_SYSCALL, syscall_dispatch);
+        } else if (trapno >= 0 && trapno <= 31) {
+            trap_handler_register(cpu_idx, trapno, exception_handler);
+        } else {
+            trap_handler_register(cpu_idx, trapno, interrupt_handler);
+        }
+    }
 
     KERN_INFO_CPU("Done.\n", cpu_idx);
     KERN_INFO_CPU("Enabling interrupts...\n", cpu_idx);

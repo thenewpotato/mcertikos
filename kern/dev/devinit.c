@@ -21,6 +21,7 @@ void devinit(uintptr_t mbi_addr)
     enable_sse();
 
     cons_init();
+    dprintf_init();
 
     debug_init();
     KERN_INFO("[BSP KERN] cons initialized.\n");

@@ -5,6 +5,13 @@
 
 #include <lib/debug.h>
 #include <lib/stdarg.h>
+#include <lib/spinlock.h>
+
+spinlock_t dprintf_lock;
+
+void dprintf_init() {
+    spinlock_init(&dprintf_lock);
+}
 
 struct dprintbuf {
     int idx;  /* current buffer index */
@@ -12,6 +19,7 @@ struct dprintbuf {
     char buf[CONSOLE_BUFFER_SIZE];
 };
 
+// Writing a string to console
 static void cputs(const char *str)
 {
     while (*str) {
@@ -35,12 +43,16 @@ int vdprintf(const char *fmt, va_list ap)
 {
     struct dprintbuf b;
 
+    spinlock_acquire(&dprintf_lock);
+
     b.idx = 0;
     b.cnt = 0;
     vprintfmt((void *) putch, &b, fmt, ap);
 
     b.buf[b.idx] = 0;
     cputs(b.buf);
+
+    spinlock_release(&dprintf_lock);
 
     return b.cnt;
 }

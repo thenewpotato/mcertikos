@@ -48,6 +48,7 @@ void debug_info(const char *fmt, ...);
 
 #ifdef DEBUG_MSG
 int dprintf(const char *fmt, ...);
+void dprintf_init();
 
 void debug_normal(const char *file, int line, const char *fmt, ...);
 void debug_warn(const char *file, int line, const char *fmt, ...);
