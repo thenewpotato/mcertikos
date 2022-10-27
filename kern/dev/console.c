@@ -11,6 +11,9 @@
 #define BUFLEN 1024
 static char linebuf[BUFLEN];
 
+spinlock_t console_readwrite_lock;
+int running_readline = 0;
+
 struct {
     char buf[CONSOLE_BUFFER_SIZE];
     uint32_t rpos, wpos;
@@ -21,12 +24,13 @@ void cons_init()
     memset(&cons, 0x0, sizeof(cons));
     serial_init();
     video_init();
+
+    spinlock_init(&console_readwrite_lock);
 }
 
 void cons_intr(int (*proc)(void))
 {
     int c;
-
     while ((c = (*proc)()) != -1) {
         if (c == 0)
             continue;
@@ -81,14 +85,21 @@ char *readline(const char *prompt)
     int i;
     char c;
 
+    spinlock_acquire(&console_readwrite_lock);
+    running_readline = 1;
+
     if (prompt != NULL)
         dprintf("%s", prompt);
-
+    
     i = 0;
     while (1) {
         c = getchar();
         if (c < 0) {
             dprintf("read error: %e\n", c);
+
+            running_readline = 0;
+            spinlock_release(&console_readwrite_lock);
+
             return NULL;
         } else if ((c == '\b' || c == '\x7f') && i > 0) {
             putchar('\b');
@@ -99,6 +110,10 @@ char *readline(const char *prompt)
         } else if (c == '\n' || c == '\r') {
             putchar('\n');
             linebuf[i] = 0;
+
+            running_readline = 0;
+            spinlock_release(&console_readwrite_lock);
+
             return linebuf;
         }
     }

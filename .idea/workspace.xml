@@ -37,7 +37,12 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="2909f86b-8e64-46af-9bd4-2516f5ec8aa2" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/deployment.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/deployment.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/kern/dev/console.c" beforeDir="false" afterPath="$PROJECT_DIR$/kern/dev/console.c" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/kern/dev/devinit.c" beforeDir="false" afterPath="$PROJECT_DIR$/kern/dev/devinit.c" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/kern/lib/debug.h" beforeDir="false" afterPath="$PROJECT_DIR$/kern/lib/debug.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/kern/lib/dprintf.c" beforeDir="false" afterPath="$PROJECT_DIR$/kern/lib/dprintf.c" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/kern/thread/PThread/PThread.c" beforeDir="false" afterPath="$PROJECT_DIR$/kern/thread/PThread/PThread.c" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -89,12 +94,16 @@
       </map>
     </option>
   </component>
+  <component name="MarkdownSettingsMigration">
+    <option name="stateVersion" value="1" />
+  </component>
   <component name="ProjectApplicationVersion">
     <option name="ide" value="CLion" />
     <option name="majorVersion" value="2022" />
     <option name="minorVersion" value="2.3" />
   </component>
   <component name="ProjectId" id="2FlqZsZmd04HULgefJXjn6JO9cB" />
+  <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
@@ -119,11 +128,6 @@
     </key>
   </component>
   <component name="RunManager" selected="Makefile Application.all">
-    <configuration default="true" type="CLionExternalRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true">
-      <method v="2">
-        <option name="CLION.EXTERNAL.BUILD" enabled="true" />
-      </method>
-    </configuration>
     <configuration name="Makefile" type="CLionNativeAppRunConfigurationType" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="mcertikos" TARGET_NAME="Makefile" CONFIG_NAME="Makefile" version="1">
       <method v="2">
         <option name="CLION.COMPOUND.BUILD" enabled="true" />
@@ -224,6 +228,11 @@
         <option name="CLION.COMPOUND.BUILD" enabled="true" />
       </method>
     </configuration>
+    <configuration default="true" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
     <list>
       <item itemvalue="Makefile Application.all" />
       <item itemvalue="Makefile Application.boot" />
@@ -261,7 +270,8 @@
       <workItem from="1665186921663" duration="2896000" />
       <workItem from="1665444143379" duration="14082000" />
       <workItem from="1665859267768" duration="1497000" />
-      <workItem from="1666729436150" duration="7174000" />
+      <workItem from="1666729436150" duration="12154000" />
+      <workItem from="1666897409946" duration="1026000" />
     </task>
     <servers />
   </component>

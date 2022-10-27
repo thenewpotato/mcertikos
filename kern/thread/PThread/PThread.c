@@ -7,11 +7,17 @@
 
 #include "import.h"
 
+spinlock_t spawn_lock;
+spinlock_t yield_lock;
+
 void thread_init(unsigned int mbi_addr)
 {
     tqueue_init(mbi_addr);
     set_curid(0);
     tcb_set_state(0, TSTATE_RUN);
+
+    spinlock_init(&spawn_lock);
+    spinlock_init(&yield_lock);
 }
 
 /**
@@ -21,12 +27,16 @@ void thread_init(unsigned int mbi_addr)
  */
 unsigned int thread_spawn(void *entry, unsigned int id, unsigned int quota)
 {
+    spinlock_acquire(&spawn_lock);
+
     unsigned int pid = kctx_new(entry, id, quota);
     if (pid != NUM_IDS) {
         tcb_set_cpu(pid, get_pcpu_idx());
         tcb_set_state(pid, TSTATE_READY);
         tqueue_enqueue(NUM_IDS + get_pcpu_idx(), pid);
     }
+
+    spinlock_release(&spawn_lock);
 
     return pid;
 }
@@ -42,6 +52,8 @@ unsigned int thread_spawn(void *entry, unsigned int id, unsigned int quota)
  */
 void thread_yield(void)
 {
+    spinlock_acquire(&yield_lock);
+
     unsigned int new_cur_pid;
     unsigned int old_cur_pid = get_curid();
 
@@ -53,6 +65,10 @@ void thread_yield(void)
     set_curid(new_cur_pid);
 
     if (old_cur_pid != new_cur_pid) {
+        spinlock_release(&yield_lock);
+
         kctx_switch(old_cur_pid, new_cur_pid);
     }
+
+    spinlock_release(&yield_lock);
 }
