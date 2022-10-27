@@ -94,7 +94,7 @@ void sys_spawn(tf_t *tf)
     }
     // Check quota
     if (!container_can_consume(cur_pid, quota)) {
-        syscall_set_errno(E_EXCEEDS_QUOTA);
+        syscall_set_errno(tf, E_EXCEEDS_QUOTA);
         syscall_set_retval1(tf, NUM_IDS);
         return;
     }
