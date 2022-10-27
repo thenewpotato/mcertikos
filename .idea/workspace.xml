@@ -38,7 +38,7 @@
   <component name="ChangeListManager">
     <list default="true" id="2909f86b-8e64-46af-9bd4-2516f5ec8aa2" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/kern/trap/TSyscall/TSyscall.c" beforeDir="false" afterPath="$PROJECT_DIR$/kern/trap/TSyscall/TSyscall.c" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/kern/thread/PThread/PThread.c" beforeDir="false" afterPath="$PROJECT_DIR$/kern/thread/PThread/PThread.c" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -267,7 +267,7 @@
       <workItem from="1665444143379" duration="14082000" />
       <workItem from="1665859267768" duration="1497000" />
       <workItem from="1666729436150" duration="12154000" />
-      <workItem from="1666897409946" duration="3308000" />
+      <workItem from="1666897409946" duration="5166000" />
     </task>
     <servers />
   </component>
