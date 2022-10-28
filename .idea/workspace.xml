@@ -37,7 +37,10 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="2909f86b-8e64-46af-9bd4-2516f5ec8aa2" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/kern/trap/TSyscall/TSyscall.c" beforeDir="false" afterPath="$PROJECT_DIR$/kern/trap/TSyscall/TSyscall.c" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/kern/lib/cv.c" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/kern/lib/cv.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/kern/lib/Makefile.inc" beforeDir="false" afterPath="$PROJECT_DIR$/kern/lib/Makefile.inc" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -223,11 +226,6 @@
         <option name="CLION.COMPOUND.BUILD" enabled="true" />
       </method>
     </configuration>
-    <configuration default="true" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true">
-      <method v="2">
-        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
-      </method>
-    </configuration>
     <list>
       <item itemvalue="Makefile Application.all" />
       <item itemvalue="Makefile Application.boot" />
@@ -266,7 +264,8 @@
       <workItem from="1665444143379" duration="14082000" />
       <workItem from="1665859267768" duration="1497000" />
       <workItem from="1666729436150" duration="12154000" />
-      <workItem from="1666897409946" duration="6180000" />
+      <workItem from="1666897409946" duration="6606000" />
+      <workItem from="1666986439985" duration="781000" />
     </task>
     <servers />
   </component>
