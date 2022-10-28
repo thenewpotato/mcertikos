@@ -1,6 +1,6 @@
 #include "cv.h"
 
-struct cv_t {
+struct _cv_t {
 
 };
 
