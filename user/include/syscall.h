@@ -43,20 +43,27 @@ static gcc_inline void sys_yield(void)
                   : "cc", "memory");
 }
 
-static gcc_inline void sys_produce(void)
+static gcc_inline void sys_produce(unsigned int value)
 {
     asm volatile ("int %0"
                   :: "i" (T_SYSCALL),
-                     "a" (SYS_produce)
+                     "a" (SYS_produce),
+                     "b" (value)
                   : "cc", "memory");
 }
 
-static gcc_inline void sys_consume(void)
+static gcc_inline unsigned int sys_consume(void)
 {
-    asm volatile ("int %0"
-                  :: "i" (T_SYSCALL),
+    int errno;
+    unsigned int value;
+
+    asm volatile ("int %1"
+                  : "=a" (errno), "=b" (value)
+                  : "i" (T_SYSCALL),
                      "a" (SYS_consume)
                   : "cc", "memory");
+
+    return value;
 }
 
 #endif  /* !_USER_SYSCALL_H_ */

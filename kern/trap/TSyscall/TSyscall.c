@@ -6,10 +6,12 @@
 #include <lib/syscall.h>
 #include <dev/intr.h>
 #include <pcpu/PCPUIntro/export.h>
+#include <lib/bounded_buffer.h>
 
 #include "import.h"
 
 static char sys_buf[NUM_IDS][PAGESIZE];
+bounded_buffer_t bbq;
 
 /**
  * Copies a string from user into buffer and prints it to the screen.
@@ -140,22 +142,25 @@ void sys_yield(tf_t *tf)
 
 void sys_produce(tf_t *tf)
 {
-    unsigned int i;
-    for (i = 0; i < 5; i++) {
-        intr_local_disable();
-        KERN_DEBUG("CPU %d: Process %d: Produced %d\n", get_pcpu_idx(), get_curid(), i);
-        intr_local_enable();
-    }
+    unsigned int value = syscall_get_arg2(tf);
+
+    bbq_insert(&bbq, value);
+
+    intr_local_disable();
+    KERN_DEBUG("CPU %d: Process %d: Produced %d\n", get_pcpu_idx(), get_curid(), value);
+    intr_local_enable();
+
     syscall_set_errno(tf, E_SUCC);
 }
 
 void sys_consume(tf_t *tf)
 {
-    unsigned int i;
-    for (i = 0; i < 5; i++) {
-        intr_local_disable();
-        KERN_DEBUG("CPU %d: Process %d: Consumed %d\n", get_pcpu_idx(), get_curid(), i);
-        intr_local_enable();
-    }
+    unsigned int value = bbq_remove(&bbq);
+
+    intr_local_disable();
+    KERN_DEBUG("CPU %d: Process %d: Consumed %d\n", get_pcpu_idx(), get_curid(), value);
+    intr_local_enable();
+
     syscall_set_errno(tf, E_SUCC);
+    syscall_set_retval1(tf, value);
 }

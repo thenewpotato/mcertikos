@@ -4,14 +4,23 @@
 #include <lib/debug.h>
 #include <dev/intr.h>
 #include <pcpu/PCPUIntro/export.h>
+#include <lib/bounded_buffer.h>
 
 #include "import.h"
+
+extern bounded_buffer_t bbq;
+int bbq_initialized = 0;
 
 void syscall_dispatch(tf_t *tf)
 {
     unsigned int nr;
 
     nr = syscall_get_arg1(tf);
+
+    if (bbq_initialized == 0) {
+        bbq_init(&bbq);
+        bbq_initialized = 1;
+    }
 
     switch (nr) {
     case SYS_puts:

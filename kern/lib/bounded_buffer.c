@@ -1,18 +1,4 @@
 #include "bounded_buffer.h"
-#include "spinlock.h"
-#include "cv.h"
-
-#define BUFFER_SIZE 5
-
-struct _bounded_buffer_t
-{
-    spinlock_t lock;
-    cv_t item_added;
-    cv_t item_removed;
-    unsigned int items[BUFFER_SIZE];
-    unsigned int front;
-    unsigned int next_empty;
-};
 
 void bbq_init(bounded_buffer_t *bbq)
 {
@@ -34,22 +20,21 @@ void bbq_insert(bounded_buffer_t *bbq, unsigned int value)
 
     bbq->items[bbq->next_empty % BUFFER_SIZE] = value;
     bbq->next_empty++;
-    cv_signal(&bbq->item_removed);
+    cv_signal(&bbq->item_added);
     spinlock_release(&bbq->lock);
 }
 
 // removes an item from the bounded buffer queue and returns it
 unsigned int bbq_remove(bounded_buffer_t *bbq)
 {
-
     spinlock_acquire(&bbq->lock);
     while (bbq->front == bbq->next_empty)
     {
         cv_wait(&bbq->item_added, &bbq->lock);
     }
-    item = bbq->items[bbq->front % BUFFER_SIZE];
+    unsigned int item = bbq->items[bbq->front % BUFFER_SIZE];
     bbq->front++;
-    cv_signal(&bbq->item_added);
+    cv_signal(&bbq->item_removed);
     spinlock_release(&bbq->lock);
     return item;
 }

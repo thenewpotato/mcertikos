@@ -7,8 +7,18 @@
 #include <lib/types.h>
 #include <lib/x86.h>
 #include "spinlock.h"
+#include "cv.h"
 
-typedef struct _bounded_buffer_t bounded_buffer_t;
+#define BUFFER_SIZE 5
+
+typedef struct {
+    spinlock_t lock;
+    cv_t item_added;
+    cv_t item_removed;
+    unsigned int items[BUFFER_SIZE];
+    unsigned int front;
+    unsigned int next_empty;
+} bounded_buffer_t;
 
 void bbq_init(bounded_buffer_t *bbq);
 void bbq_insert(bounded_buffer_t *bbq, unsigned int value);

@@ -6,6 +6,7 @@
 #include <pcpu/PCPUIntro/export.h>
 
 #include "import.h"
+#include "thread/PTCBIntro/export.h"
 
 spinlock_t thread_lock[NUM_CPUS];
 unsigned int milliseconds_elapsed[NUM_CPUS];
@@ -70,6 +71,33 @@ void thread_yield(void)
 
         kctx_switch(old_cur_pid, new_cur_pid);
     }
+
+    spinlock_release(&thread_lock[get_pcpu_idx()]);
+}
+
+void thread_suspend(void) {
+    spinlock_acquire(&thread_lock[get_pcpu_idx()]);
+
+    unsigned int old_cur_pid = get_curid();
+    unsigned int new_cur_pid = tqueue_dequeue(NUM_IDS + get_pcpu_idx());
+
+    if (new_cur_pid != NUM_IDS) {
+        tcb_set_state(new_cur_pid, TSTATE_RUN);
+        set_curid(new_cur_pid);
+
+        spinlock_release(&thread_lock[get_pcpu_idx()]);
+
+        kctx_switch(old_cur_pid, new_cur_pid);
+    }
+
+    spinlock_release(&thread_lock[get_pcpu_idx()]);
+}
+
+void thread_make_ready(unsigned int pid) {
+    spinlock_acquire(&thread_lock[get_pcpu_idx()]);
+
+    tcb_set_state(pid, TSTATE_READY);
+    tqueue_enqueue(tcb_get_cpu(pid), pid);
 
     spinlock_release(&thread_lock[get_pcpu_idx()]);
 }
