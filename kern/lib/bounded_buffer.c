@@ -17,6 +17,9 @@ void bbq_insert(bounded_buffer_t *bbq, unsigned int value)
     spinlock_acquire(&bbq->lock);
     while ((bbq->next_empty - bbq->front) == BUFFER_SIZE)
     {
+        intr_local_disable();
+        KERN_DEBUG("Queue full. Putting this process on wait\n");
+        intr_local_enable();
         cv_wait(&bbq->item_removed, &bbq->lock);
     }
 
@@ -33,7 +36,7 @@ unsigned int bbq_remove(bounded_buffer_t *bbq)
     while (bbq->front == bbq->next_empty)
     {
         intr_local_disable();
-        KERN_DEBUG("Queue empty\n");
+        KERN_DEBUG("Queue empty. Putting this process on wait\n");
         intr_local_enable();
         cv_wait(&bbq->item_added, &bbq->lock);
     }

@@ -16,7 +16,7 @@ void cv_wait(cv_t *cv, spinlock_t *lk) {
     cv->next_empty++;
 
     intr_local_disable();
-    KERN_DEBUG("Added %d to waiting queue\n", cur_pid);
+    KERN_DEBUG("Added process %d to CV waiting queue\n", cur_pid);
     intr_local_enable();
 
     spinlock_release(lk);
@@ -28,6 +28,11 @@ void cv_signal(cv_t *cv) {
     if (cv->front != cv->next_empty) {
         unsigned int wake_pid = cv->waiting[cv->front % NUM_IDS];
         cv->front++;
+
+        intr_local_disable();
+        KERN_DEBUG("Signaling process %d to be ready\n", wake_pid);
+        intr_local_enable();
+
         thread_make_ready(wake_pid);
     }
 }
@@ -36,6 +41,11 @@ void cv_broadcast(cv_t *cv) {
     while (cv->front != cv->next_empty) {
         unsigned int wake_pid = cv->waiting[cv->front % NUM_IDS];
         cv->front++;
+
+        intr_local_disable();
+        KERN_DEBUG("Broadcasting process %d to be ready\n", wake_pid);
+        intr_local_enable();
+
         thread_make_ready(wake_pid);
     }
 }
