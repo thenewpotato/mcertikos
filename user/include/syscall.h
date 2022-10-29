@@ -57,7 +57,7 @@ static gcc_inline unsigned int sys_consume(void)
     int errno;
     unsigned int value;
 
-    asm volatile ("int %1"
+    asm volatile ("int %2"
                   : "=a" (errno), "=b" (value)
                   : "i" (T_SYSCALL),
                      "a" (SYS_consume)
