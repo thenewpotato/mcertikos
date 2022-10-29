@@ -9,7 +9,7 @@
 #include "spinlock.h"
 #include "cv.h"
 
-#define BUFFER_SIZE 1000
+#define BUFFER_SIZE 5
 
 typedef struct {
     spinlock_t lock;

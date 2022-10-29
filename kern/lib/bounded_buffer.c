@@ -22,7 +22,7 @@ void bbq_insert(bounded_buffer_t *bbq, unsigned int value)
 
     bbq->items[bbq->next_empty % BUFFER_SIZE] = value;
     bbq->next_empty++;
-    cv_broadcast(&bbq->item_added);
+    cv_signal(&bbq->item_added);
     spinlock_release(&bbq->lock);
 }
 
@@ -39,7 +39,7 @@ unsigned int bbq_remove(bounded_buffer_t *bbq)
     }
     unsigned int item = bbq->items[bbq->front % BUFFER_SIZE];
     bbq->front++;
-    cv_broadcast(&bbq->item_removed);
+    cv_signal(&bbq->item_removed);
     spinlock_release(&bbq->lock);
     return item;
 }
