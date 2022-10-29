@@ -97,7 +97,7 @@ void thread_make_ready(unsigned int pid) {
     spinlock_acquire(&thread_lock[get_pcpu_idx()]);
 
     tcb_set_state(pid, TSTATE_READY);
-    tqueue_enqueue(tcb_get_cpu(pid), pid);
+    tqueue_enqueue(NUM_IDS + tcb_get_cpu(pid), pid);
 
     spinlock_release(&thread_lock[get_pcpu_idx()]);
 }
