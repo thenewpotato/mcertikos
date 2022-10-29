@@ -12,10 +12,10 @@ int main(int argc, char **argv)
 //            consume();
 //    }
 
-    consume();
-    consume();
-    consume();
-    consume();
+    produce(5);
+    produce(10);
+    produce(7);
+    produce(11);
 
     return 0;
 }
