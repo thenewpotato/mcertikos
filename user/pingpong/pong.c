@@ -16,10 +16,10 @@ int main(int argc, char **argv)
     produce(10);
     produce(7);
     produce(11);
-    produce(19);
-    produce(51);
-    produce(23);
-    produce(47);
+//    produce(19);
+//    produce(51);
+//    produce(23);
+//    produce(47);
 
     return 0;
 }

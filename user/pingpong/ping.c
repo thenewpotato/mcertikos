@@ -11,6 +11,10 @@ int main(int argc, char **argv)
     consume();
     consume();
     consume();
+    consume();
+    consume();
+    consume();
+    consume();
 
 //    // fast producing
 //    for (i = 0; i < 10; i++)
