@@ -1,4 +1,6 @@
 #include "bounded_buffer.h"
+#include <dev/intr.h>
+#include <lib/debug.h>
 
 void bbq_init(bounded_buffer_t *bbq)
 {
@@ -30,6 +32,9 @@ unsigned int bbq_remove(bounded_buffer_t *bbq)
     spinlock_acquire(&bbq->lock);
     while (bbq->front == bbq->next_empty)
     {
+        intr_local_disable();
+        KERN_DEBUG("Queue empty\n");
+        intr_local_enable();
         cv_wait(&bbq->item_added, &bbq->lock);
     }
     unsigned int item = bbq->items[bbq->front % BUFFER_SIZE];
