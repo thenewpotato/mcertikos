@@ -11,6 +11,7 @@
 #include <thread/PTCBIntro/export.h>
 #include <thread/PTQueueInit/export.h>
 #include <thread/PThread/export.h>
+#include <lib/bounded_buffer.h>
 
 #ifdef TEST
 extern bool test_PKCtxNew(void);
@@ -30,6 +31,8 @@ extern uint8_t _binary___obj_user_idle_idle_start[];
 extern uint8_t _binary___obj_user_pingpong_ping_start[];
 extern uint8_t _binary___obj_user_pingpong_pong_start[];
 
+extern bounded_buffer_t bbq;
+
 static void kern_main(void)
 {
     KERN_INFO("[BSP KERN] In kernel main.\n\n");
@@ -39,6 +42,8 @@ static void kern_main(void)
     int cpu_idx = get_pcpu_idx();
     int i;
     unsigned int pid;
+
+    bbq_init(&bbq);
 
     all_ready = FALSE;
     for (i = 1; i < pcpu_ncpu(); i++) {
