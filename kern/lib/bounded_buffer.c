@@ -1,6 +1,8 @@
 #include "bounded_buffer.h"
+#include "thread/PCurID/export.h"
 #include <dev/intr.h>
 #include <lib/debug.h>
+#include <pcpu/PCPUIntro/export.h>
 
 void bbq_init(bounded_buffer_t *bbq)
 {
@@ -26,6 +28,11 @@ void bbq_insert(bounded_buffer_t *bbq, unsigned int value)
     bbq->items[bbq->next_empty % BUFFER_SIZE] = value;
     bbq->next_empty++;
     cv_signal(&bbq->item_added);
+
+    intr_local_disable();
+    KERN_DEBUG("CPU %d: Process %d: Produced %d\n", get_pcpu_idx(), get_curid(), value);
+    intr_local_enable();
+
     spinlock_release(&bbq->lock);
 }
 
@@ -43,6 +50,11 @@ unsigned int bbq_remove(bounded_buffer_t *bbq)
     unsigned int item = bbq->items[bbq->front % BUFFER_SIZE];
     bbq->front++;
     cv_signal(&bbq->item_removed);
+
+    intr_local_disable();
+    KERN_DEBUG("CPU %d: Process %d: Consumed %d\n", get_pcpu_idx(), get_curid(), item);
+    intr_local_enable();
+
     spinlock_release(&bbq->lock);
     return item;
 }
