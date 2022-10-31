@@ -144,8 +144,9 @@ void sys_produce(tf_t *tf)
 {
     unsigned int value = syscall_get_arg2(tf);
 
-    intr_local_disable();
     bbq_insert(&bbq, value);
+
+    intr_local_disable();
     KERN_DEBUG("CPU %d: Process %d: Produced %d\n", get_pcpu_idx(), get_curid(), value);
     intr_local_enable();
 
@@ -154,8 +155,9 @@ void sys_produce(tf_t *tf)
 
 void sys_consume(tf_t *tf)
 {
-    intr_local_disable();
     unsigned int value = bbq_remove(&bbq);
+
+    intr_local_disable();
     KERN_DEBUG("CPU %d: Process %d: Consumed %d\n", get_pcpu_idx(), get_curid(), value);
     intr_local_enable();
 
