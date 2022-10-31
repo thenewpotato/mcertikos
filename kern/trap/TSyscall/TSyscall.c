@@ -146,9 +146,9 @@ void sys_produce(tf_t *tf)
 
     bbq_insert(&bbq, value);
 
-    intr_local_disable();
-    KERN_DEBUG("CPU %d: Process %d: Produced %d\n", get_pcpu_idx(), get_curid(), value);
-    intr_local_enable();
+//    intr_local_disable();
+//    KERN_DEBUG("CPU %d: Process %d: Produced %d\n", get_pcpu_idx(), get_curid(), value);
+//    intr_local_enable();
 
     syscall_set_errno(tf, E_SUCC);
 }
