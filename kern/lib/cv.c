@@ -17,13 +17,11 @@ void cv_wait(cv_t *cv, spinlock_t *lk) {
 
     intr_local_disable();
     KERN_DEBUG("Added process %d to CV waiting queue\n", cur_pid);
-
+    intr_local_enable();
 
     spinlock_release(lk);
     thread_suspend();
     spinlock_acquire(lk);
-
-    intr_local_enable();
 }
 
 void cv_signal(cv_t *cv) {
@@ -33,10 +31,9 @@ void cv_signal(cv_t *cv) {
 
         intr_local_disable();
         KERN_DEBUG("Signaling process %d to be ready\n", wake_pid);
-
+        intr_local_enable();
 
         thread_make_ready(wake_pid);
-        intr_local_enable();
     }
 }
 
@@ -47,8 +44,8 @@ void cv_broadcast(cv_t *cv) {
 
         intr_local_disable();
         KERN_DEBUG("Broadcasting process %d to be ready\n", wake_pid);
+        intr_local_enable();
 
         thread_make_ready(wake_pid);
-        intr_local_enable();
     }
 }
