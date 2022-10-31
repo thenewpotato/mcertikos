@@ -157,9 +157,9 @@ void sys_consume(tf_t *tf)
 {
     unsigned int value = bbq_remove(&bbq);
 
-    intr_local_disable();
-    KERN_DEBUG("CPU %d: Process %d: Consumed %d\n", get_pcpu_idx(), get_curid(), value);
-    intr_local_enable();
+//    intr_local_disable();
+//    KERN_DEBUG("CPU %d: Process %d: Consumed %d\n", get_pcpu_idx(), get_curid(), value);
+//    intr_local_enable();
 
     syscall_set_errno(tf, E_SUCC);
     syscall_set_retval1(tf, value);
