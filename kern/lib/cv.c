@@ -11,6 +11,7 @@ void cv_init(cv_t *cv) {
 
 void cv_wait(cv_t *cv, spinlock_t *lk) {
     // Add to waiting queue
+    KERN_ASSERT(spinlock_holding(lk));
     unsigned int cur_pid = get_curid();
     cv->waiting[cv->next_empty % NUM_IDS] = cur_pid;
     cv->next_empty++;
