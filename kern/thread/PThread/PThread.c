@@ -70,10 +70,6 @@ void thread_yield(void)
     if (old_cur_pid != new_cur_pid) {
         spinlock_release(&thread_lock[get_pcpu_idx()]);
 
-//        intr_local_disable();
-//        KERN_DEBUG("CPU %d: Yielding from process %d to %d\n", get_pcpu_idx(), old_cur_pid, new_cur_pid);
-//        intr_local_enable();
-
         kctx_switch(old_cur_pid, new_cur_pid);
     }
 
@@ -91,10 +87,6 @@ void thread_suspend(void) {
         set_curid(new_cur_pid);
 
         spinlock_release(&thread_lock[get_pcpu_idx()]);
-
-        intr_local_disable();
-        KERN_DEBUG("CPU %d: Suspending from process %d to %d\n", get_pcpu_idx(), old_cur_pid, new_cur_pid);
-        intr_local_enable();
 
         kctx_switch(old_cur_pid, new_cur_pid);
     }
