@@ -17,5 +17,7 @@ int main(int argc, char **argv)
             produce(i);
     }
 
+    printf("ping ended\n");
+
     return 0;
 }

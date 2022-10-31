@@ -17,11 +17,13 @@ void cv_wait(cv_t *cv, spinlock_t *lk) {
 
     intr_local_disable();
     KERN_DEBUG("Added process %d to CV waiting queue\n", cur_pid);
-    intr_local_enable();
+
 
     spinlock_release(lk);
     thread_suspend();
     spinlock_acquire(lk);
+
+    intr_local_enable();
 }
 
 void cv_signal(cv_t *cv) {
