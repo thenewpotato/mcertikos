@@ -29,6 +29,8 @@ void bbq_insert(bounded_buffer_t *bbq, unsigned int value)
     bbq->next_empty++;
     cv_signal(&bbq->item_added);
 
+    KERN_DEBUG("CPU %d: Process %d: BBQ Inserted %d\n", get_pcpu_idx(), get_curid(), value);
+
     spinlock_release(&bbq->lock);
 }
 
@@ -46,6 +48,8 @@ unsigned int bbq_remove(bounded_buffer_t *bbq)
     unsigned int item = bbq->items[bbq->front % BUFFER_SIZE];
     bbq->front++;
     cv_signal(&bbq->item_removed);
+
+    KERN_DEBUG("CPU %d: Process %d: BBQ Popped %d\n", get_pcpu_idx(), get_curid(), item);
 
     spinlock_release(&bbq->lock);
     return item;
