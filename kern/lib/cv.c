@@ -33,9 +33,10 @@ void cv_signal(cv_t *cv) {
 
         intr_local_disable();
         KERN_DEBUG("Signaling process %d to be ready\n", wake_pid);
-        intr_local_enable();
+
 
         thread_make_ready(wake_pid);
+        intr_local_enable();
     }
 }
 
@@ -46,8 +47,8 @@ void cv_broadcast(cv_t *cv) {
 
         intr_local_disable();
         KERN_DEBUG("Broadcasting process %d to be ready\n", wake_pid);
-        intr_local_enable();
 
         thread_make_ready(wake_pid);
+        intr_local_enable();
     }
 }
