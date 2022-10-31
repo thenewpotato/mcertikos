@@ -71,6 +71,8 @@ void thread_yield(void)
         spinlock_release(&thread_lock[get_pcpu_idx()]);
 
         kctx_switch(old_cur_pid, new_cur_pid);
+
+        return;
     }
 
     spinlock_release(&thread_lock[get_pcpu_idx()]);
@@ -89,6 +91,8 @@ void thread_suspend(void) {
         spinlock_release(&thread_lock[get_pcpu_idx()]);
 
         kctx_switch(old_cur_pid, new_cur_pid);
+
+        return;
     }
 
     spinlock_release(&thread_lock[get_pcpu_idx()]);
