@@ -8,6 +8,7 @@
 #include "import.h"
 #include "thread/PTCBIntro/export.h"
 #include "dev/intr.h"
+#include "thread/PTQueueInit/export.h"
 
 spinlock_t thread_lock[NUM_CPUS];
 unsigned int milliseconds_elapsed[NUM_CPUS];
@@ -82,6 +83,7 @@ void thread_suspend(void) {
     spinlock_acquire(&thread_lock[get_pcpu_idx()]);
 
     unsigned int old_cur_pid = get_curid();
+    tqueue_remove(NUM_IDS + get_pcpu_idx(), old_cur_pid);
     unsigned int new_cur_pid = tqueue_dequeue(NUM_IDS + get_pcpu_idx());
 
     if (new_cur_pid != NUM_IDS) {
