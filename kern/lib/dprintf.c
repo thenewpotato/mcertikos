@@ -39,7 +39,7 @@ int vdprintf(const char *fmt, va_list ap)
 {
     struct dprintbuf b;
 
-//    spinlock_acquire(&console_readwrite_lock);
+    spinlock_acquire(&console_readwrite_lock);
 
     b.idx = 0;
     b.cnt = 0;
@@ -48,7 +48,7 @@ int vdprintf(const char *fmt, va_list ap)
     b.buf[b.idx] = 0;
     cputs(b.buf);
 
-//    spinlock_release(&console_readwrite_lock);
+    spinlock_release(&console_readwrite_lock);
 
     return b.cnt;
 }

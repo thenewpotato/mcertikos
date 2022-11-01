@@ -31,9 +31,9 @@ void bbq_insert(bounded_buffer_t *bbq, unsigned int value)
 
 //    intr_local_disable();
 //    intr_local_enable();
+    KERN_DEBUG("CPU %d: Process %d: Produced %d\n", get_pcpu_idx(), get_curid(), value);
 
     spinlock_release(&bbq->lock);
-    KERN_DEBUG("CPU %d: Process %d: Produced %d\n", get_pcpu_idx(), get_curid(), value);
 }
 
 // removes an item from the bounded buffer queue and returns it
@@ -53,8 +53,8 @@ unsigned int bbq_remove(bounded_buffer_t *bbq)
 
 //    intr_local_disable();
 //    intr_local_enable();
+    KERN_DEBUG("CPU %d: Process %d: Consumed %d\n", get_pcpu_idx(), get_curid(), item);
 
     spinlock_release(&bbq->lock);
-    KERN_DEBUG("CPU %d: Process %d: Consumed %d\n", get_pcpu_idx(), get_curid(), item);
     return item;
 }
