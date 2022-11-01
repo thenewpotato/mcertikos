@@ -83,7 +83,6 @@ void thread_suspend(void) {
     spinlock_acquire(&thread_lock[get_pcpu_idx()]);
 
     unsigned int old_cur_pid = get_curid();
-    tcb_set_state(old_cur_pid, TSTATE_SLEEP);
     tqueue_remove(NUM_IDS + get_pcpu_idx(), old_cur_pid);
     unsigned int new_cur_pid = tqueue_dequeue(NUM_IDS + get_pcpu_idx());
 
