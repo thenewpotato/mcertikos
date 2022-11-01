@@ -10,7 +10,7 @@
 #include "dev/intr.h"
 
 spinlock_t thread_lock[NUM_CPUS];
-spinlock_t sched_lock[NUM_CPUS];
+//spinlock_t sched_lock[NUM_CPUS];
 unsigned int milliseconds_elapsed[NUM_CPUS];
 
 void thread_init(unsigned int mbi_addr)
@@ -21,7 +21,7 @@ void thread_init(unsigned int mbi_addr)
 
     for (int i = 0; i < NUM_CPUS; i++) {
         spinlock_init(&thread_lock[i]);
-        spinlock_init(&sched_lock[i]);
+//        spinlock_init(&sched_lock[i]);
     }
 }
 
@@ -122,12 +122,12 @@ void thread_make_ready(unsigned int pid) {
 }
 
 void sched_update() {
-    spinlock_acquire(&sched_lock[get_pcpu_idx()]);
+//    spinlock_acquire(&sched_lock[get_pcpu_idx()]);
     int current_cpu = get_pcpu_idx();
     milliseconds_elapsed[current_cpu] += 1000 / LAPIC_TIMER_INTR_FREQ;
     if (milliseconds_elapsed[current_cpu] >= SCHED_SLICE) {
         milliseconds_elapsed[current_cpu] = 0;
         thread_yield();
     }
-    spinlock_release(&sched_lock[get_pcpu_idx()]);
+//    spinlock_release(&sched_lock[get_pcpu_idx()]);
 }
