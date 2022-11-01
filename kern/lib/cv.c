@@ -20,8 +20,7 @@ void cv_wait(cv_t *cv, spinlock_t *lk) {
 //    KERN_DEBUG("Added process %d to CV waiting queue\n", cur_pid);
 //    intr_local_enable();
 
-    spinlock_release(lk);
-    thread_suspend();
+    thread_suspend(lk);
     spinlock_acquire(lk);
 }
 
