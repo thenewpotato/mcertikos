@@ -82,12 +82,15 @@ void thread_suspend(void) {
     spinlock_acquire(&thread_lock[get_pcpu_idx()]);
 
     unsigned int old_cur_pid = get_curid();
+
+    tcb_set_state(old_cur_pid, TSTATE_SLEEP);
+    tqueue_enqueue(NUM_IDS + get_pcpu_idx(), old_cur_pid);
+
     unsigned int new_cur_pid = tqueue_dequeue(NUM_IDS + get_pcpu_idx());
+    tcb_set_state(new_cur_pid, TSTATE_RUN);
+    set_curid(new_cur_pid);
 
     if (new_cur_pid != NUM_IDS) {
-        tcb_set_state(new_cur_pid, TSTATE_RUN);
-        set_curid(new_cur_pid);
-
         spinlock_release(&thread_lock[get_pcpu_idx()]);
 
         kctx_switch(old_cur_pid, new_cur_pid);
@@ -102,7 +105,7 @@ void thread_make_ready(unsigned int pid) {
     spinlock_acquire(&thread_lock[get_pcpu_idx()]);
 
     tcb_set_state(pid, TSTATE_READY);
-    tqueue_enqueue(NUM_IDS + tcb_get_cpu(pid), pid);
+//    tqueue_enqueue(NUM_IDS + tcb_get_cpu(pid), pid);
 
     spinlock_release(&thread_lock[get_pcpu_idx()]);
 }
