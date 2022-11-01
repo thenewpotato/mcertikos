@@ -36,15 +36,60 @@ void trap_init(unsigned int cpu_idx)
 
     KERN_INFO_CPU("Register trap handlers...\n", cpu_idx);
 
-    for (int trapno = 0; trapno < 256; trapno++) {
-        if (trapno == T_SYSCALL) {
-            trap_handler_register(cpu_idx, T_SYSCALL, syscall_dispatch);
-        } else if (trapno >= 0 && trapno <= 31) {
-            trap_handler_register(cpu_idx, trapno, exception_handler);
-        } else {
-            trap_handler_register(cpu_idx, trapno, interrupt_handler);
-        }
-    }
+    trap_handler_register(cpu_idx, T_DIVIDE, exception_handler);
+    trap_handler_register(cpu_idx, T_DEBUG, exception_handler);
+    trap_handler_register(cpu_idx, T_NMI, exception_handler);
+    trap_handler_register(cpu_idx, T_BRKPT, exception_handler);
+    trap_handler_register(cpu_idx, T_OFLOW, exception_handler);
+    trap_handler_register(cpu_idx, T_BOUND, exception_handler);
+    trap_handler_register(cpu_idx, T_ILLOP, exception_handler);
+    trap_handler_register(cpu_idx, T_DEVICE, exception_handler);
+    trap_handler_register(cpu_idx, T_DBLFLT, exception_handler);
+    trap_handler_register(cpu_idx, T_COPROC, exception_handler);
+    trap_handler_register(cpu_idx, T_TSS, exception_handler);
+    trap_handler_register(cpu_idx, T_SEGNP, exception_handler);
+    trap_handler_register(cpu_idx, T_STACK, exception_handler);
+    trap_handler_register(cpu_idx, T_GPFLT, exception_handler);
+    trap_handler_register(cpu_idx, T_PGFLT, exception_handler);
+    trap_handler_register(cpu_idx, T_RES, exception_handler);
+    trap_handler_register(cpu_idx, T_FPERR, exception_handler);
+    trap_handler_register(cpu_idx, T_ALIGN, exception_handler);
+    trap_handler_register(cpu_idx, T_MCHK, exception_handler);
+    trap_handler_register(cpu_idx, T_SIMD, exception_handler);
+    trap_handler_register(cpu_idx, T_SECEV, exception_handler);
+
+    trap_handler_register(cpu_idx, T_IRQ0 + IRQ_TIMER, interrupt_handler);
+    trap_handler_register(cpu_idx, T_IRQ0 + IRQ_KBD, interrupt_handler);
+    trap_handler_register(cpu_idx, T_IRQ0 + IRQ_SLAVE, interrupt_handler);
+    trap_handler_register(cpu_idx, T_IRQ0 + IRQ_SERIAL24, interrupt_handler);
+    trap_handler_register(cpu_idx, T_IRQ0 + IRQ_SERIAL13, interrupt_handler);
+    trap_handler_register(cpu_idx, T_IRQ0 + IRQ_LPT2, interrupt_handler);
+    trap_handler_register(cpu_idx, T_IRQ0 + IRQ_FLOPPY, interrupt_handler);
+    trap_handler_register(cpu_idx, T_IRQ0 + IRQ_SPURIOUS, interrupt_handler);
+    trap_handler_register(cpu_idx, T_IRQ0 + IRQ_RTC, interrupt_handler);
+    trap_handler_register(cpu_idx, T_IRQ0 + IRQ_MOUSE, interrupt_handler);
+    trap_handler_register(cpu_idx, T_IRQ0 + IRQ_COPROCESSOR, interrupt_handler);
+    trap_handler_register(cpu_idx, T_IRQ0 + IRQ_IDE1, interrupt_handler);
+    trap_handler_register(cpu_idx, T_IRQ0 + IRQ_IDE2, interrupt_handler);
+
+    trap_handler_register(cpu_idx, T_SYSCALL, syscall_dispatch);
+
+    trap_handler_register(cpu_idx, T_LTIMER, interrupt_handler);
+    trap_handler_register(cpu_idx, T_LERROR, interrupt_handler);
+    trap_handler_register(cpu_idx, T_PERFCTR, interrupt_handler);
+    trap_handler_register(cpu_idx, T_IPI0 + IPI_RESCHED, interrupt_handler);
+    trap_handler_register(cpu_idx, T_IPI0 + IPI_INVALC, interrupt_handler);
+    trap_handler_register(cpu_idx, T_DEFAULT, interrupt_handler);
+
+//    for (int trapno = 0; trapno < 256; trapno++) {
+//        if (trapno == T_SYSCALL) {
+//            trap_handler_register(cpu_idx, T_SYSCALL, syscall_dispatch);
+//        } else if (trapno >= 0 && trapno <= 31) {
+//            trap_handler_register(cpu_idx, trapno, exception_handler);
+//        } else {
+//            trap_handler_register(cpu_idx, trapno, interrupt_handler);
+//        }
+//    }
 
     KERN_INFO_CPU("Done.\n", cpu_idx);
     KERN_INFO_CPU("Enabling interrupts...\n", cpu_idx);
