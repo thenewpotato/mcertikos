@@ -32,6 +32,12 @@ void thread_init(unsigned int mbi_addr)
  */
 unsigned int thread_spawn(void *entry, unsigned int id, unsigned int quota)
 {
+    /*
+     * Acquire thread lock for CPU
+     * Make new kernel context
+     * Put on scheduler queue
+     * Release thread lock
+     */
     spinlock_acquire(&thread_lock[get_pcpu_idx()]);
 
     unsigned int pid = kctx_new(entry, id, quota);
@@ -57,7 +63,19 @@ unsigned int thread_spawn(void *entry, unsigned int id, unsigned int quota)
  */
 void thread_yield(void)
 {
+    /*
+     * Acquire thread lock for CPU
+     * set timer to 0
+     * Old thread is ready
+     * enqueue old thread
+     * loop through queue until finding a ready thread
+     * set new thread to running
+     * set current id
+     * release lock and context switch
+     */
     spinlock_acquire(&thread_lock[get_pcpu_idx()]);
+
+    milliseconds_elapsed[get_pcpu_idx()] = 0;
 
     unsigned int new_cur_pid;
     unsigned int old_cur_pid = get_curid();
@@ -85,6 +103,11 @@ void thread_yield(void)
 }
 
 void thread_suspend(spinlock_t *cv_lock) {
+    /*
+     * Acquire thread lock
+     *
+     */
+
     spinlock_acquire(&thread_lock[get_pcpu_idx()]);
     spinlock_release(cv_lock);
 
