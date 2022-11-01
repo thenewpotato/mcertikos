@@ -85,25 +85,25 @@ char *readline(const char *prompt)
     int i;
     char c;
 
-    spinlock_acquire(&console_readwrite_lock);
+//    spinlock_acquire(&console_readwrite_lock);
 //    running_readline = 1;
 
     if (prompt != NULL) {
-        spinlock_release(&console_readwrite_lock);
+//        spinlock_release(&console_readwrite_lock);
         dprintf("%s", prompt);
-        spinlock_acquire(&console_readwrite_lock);
+//        spinlock_acquire(&console_readwrite_lock);
     }
 
     i = 0;
     while (1) {
         c = getchar();
         if (c < 0) {
-            spinlock_release(&console_readwrite_lock);
+//            spinlock_release(&console_readwrite_lock);
             dprintf("read error: %e\n", c);
-            spinlock_acquire(&console_readwrite_lock);
+//            spinlock_acquire(&console_readwrite_lock);
 
 //            running_readline = 0;
-            spinlock_release(&console_readwrite_lock);
+//            spinlock_release(&console_readwrite_lock);
 
             return NULL;
         } else if ((c == '\b' || c == '\x7f') && i > 0) {
@@ -117,7 +117,7 @@ char *readline(const char *prompt)
             linebuf[i] = 0;
 
 //            running_readline = 0;
-            spinlock_release(&console_readwrite_lock);
+//            spinlock_release(&console_readwrite_lock);
 
             return linebuf;
         }
