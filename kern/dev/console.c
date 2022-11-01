@@ -12,6 +12,7 @@
 static char linebuf[BUFLEN];
 
 spinlock_t console_readwrite_lock;
+spinlock_t char_lock;
 //int running_readline = 0;
 
 struct {
@@ -26,6 +27,7 @@ void cons_init()
     video_init();
 
     spinlock_init(&console_readwrite_lock);
+    spinlock_init(&char_lock);
 }
 
 void cons_intr(int (*proc)(void))
@@ -62,8 +64,10 @@ char cons_getc(void)
 
 void cons_putc(char c)
 {
+    spinlock_acquire(&char_lock);
     serial_putc(c);
     video_putc(c);
+    spinlock_release(&char_lock);
 }
 
 char getchar(void)
