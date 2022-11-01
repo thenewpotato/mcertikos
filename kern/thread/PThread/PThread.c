@@ -64,10 +64,6 @@ void thread_yield(void)
     tqueue_enqueue(NUM_IDS + get_pcpu_idx(), old_cur_pid);
 
     new_cur_pid = tqueue_dequeue(NUM_IDS + get_pcpu_idx());
-    while (tcb_get_state(new_cur_pid) != TSTATE_READY) {
-        tqueue_enqueue(NUM_IDS + get_pcpu_idx(), new_cur_pid);
-        new_cur_pid = tqueue_dequeue(NUM_IDS + get_pcpu_idx());
-    }
     tcb_set_state(new_cur_pid, TSTATE_RUN);
     set_curid(new_cur_pid);
 
@@ -91,10 +87,6 @@ void thread_suspend(void) {
     tqueue_enqueue(NUM_IDS + get_pcpu_idx(), old_cur_pid);
 
     unsigned int new_cur_pid = tqueue_dequeue(NUM_IDS + get_pcpu_idx());
-    while (tcb_get_state(new_cur_pid) != TSTATE_READY) {
-        tqueue_enqueue(NUM_IDS + get_pcpu_idx(), new_cur_pid);
-        new_cur_pid = tqueue_dequeue(NUM_IDS + get_pcpu_idx());
-    }
     tcb_set_state(new_cur_pid, TSTATE_RUN);
     set_curid(new_cur_pid);
 
