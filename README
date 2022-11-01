@@ -12,3 +12,59 @@ List here the following info:
 2. whether you coded this assignment together, and if not, who worked on which part
 3. brief description of what you have implemented
 4. and anything else you would like us to know
+
+Collaborators
+=============
+- Tiger Wang (jw2723)
+- Jackie Dong (jd2598)
+
+Code Description
+================
+
+Part 1:
+In trap_init, we use trap_handler_register to register each trap number with an appropriate trap handler. Depending
+on the trap number, we assign either the interrupt handler, exception handler, or syscall dispatch handler.
+
+In order to address race conditions in the kernel under a multi-CPU setup, we added spinlocks to kernel methods such
+as readline, vdprintf, and various debug functions. We used the same spinlock for readline and vdprintf, because both
+control IO to the console. We added spinlocks to debug functions to ensure debug messages are properly sequentially
+ordered.
+
+Finally, we added a spinlock for PThread functions in order to address race conditions when modifying shared variables
+such as thread queues and timers.
+
+Part 2:
+To implement the timer interrupt handler, we first created a helper function (sched_update) in PThread that will be
+invoked on each timer interrupt. Whenever sched_update is called, it increments the current CPU timer by 1 millisecond
+(this is because the timer interrupt fires every millisecond). If the timer reaches at least SCHED_SLICE, we reset the
+timer and invoke thread_yield to indicate that the processor is free to replace the current process with another
+process.
+
+Part 3:
+Following the lab spec, we allowed producer and consumer system calls to be interrupted even in the kernel space. In
+order to prevent print statement deadlocks, we temporarily disabled interrupts whenever we call a print or debug method
+within the producer and consumer system call handlers.
+
+For sys_spawn, we added conditional checks at the beginning of the function in order to catch relevant errors. To check
+if the memory quota will be exceeded by this spawn request, we use container_can_consume. To check if the parent has
+reached the maximum number of children, we compare the result of container_get_nchildren with MAX_CHILDREN. To check
+if the child ID generated is invalid, we simply compare it against NUM_IDS.
+
+Part 4:
+First, we implemented condition variables (in cv.c and cv.h). To implement the condition variable, we implemented an
+array-based queue that will be used by the condition variable to hold pids of processes that are waiting on the
+condition variable's queue. We added two additional functions to PThread: thread_suspend and thread_make_ready. The
+condition variable uses thread_suspend to put a waiting thread in a sleeping state while context switching to the next
+ready process for the current CPU. The condition variable uses thread_make_ready in its signal and broadcast functions
+to mark appropriate waiting processes as ready to run.
+
+Next, we implemented a blocking bounded queue (BBQ), in bounded_buffer.c and bounded_buffer.h. Each bounded buffer has
+an array-based queue that can be enqueued to or dequeued from. In order to implement the bounded buffer as a shared
+object potentially written to and changed by multiple CPUs at a time, we lock public methods of the BBQ with spinlocks.
+We use two condition variables to temporarily suspend (or sleep) processes that are trying to add to a full queue or
+pop from an empty queue. Suspended queues are added to the appropriate condition variable's waiting list, and are woken
+up when the appropriate condition is met.
+
+Finally, we change the system call interface to allow user processes to pass in the value to be produced, and to allow
+the user process to get back the value that was consumed via a return value. We use a shared BBQ object in order
+to implement the consumer and producer system call handlers.
