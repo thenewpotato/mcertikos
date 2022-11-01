@@ -12,7 +12,7 @@
 static char linebuf[BUFLEN];
 
 spinlock_t console_readwrite_lock;
-int running_readline = 0;
+//int running_readline = 0;
 
 struct {
     char buf[CONSOLE_BUFFER_SIZE];
@@ -86,18 +86,23 @@ char *readline(const char *prompt)
     char c;
 
     spinlock_acquire(&console_readwrite_lock);
-    running_readline = 1;
+//    running_readline = 1;
 
-    if (prompt != NULL)
+    if (prompt != NULL) {
+        spinlock_release(&console_readwrite_lock);
         dprintf("%s", prompt);
-    
+        spinlock_acquire(&console_readwrite_lock);
+    }
+
     i = 0;
     while (1) {
         c = getchar();
         if (c < 0) {
+            spinlock_release(&console_readwrite_lock);
             dprintf("read error: %e\n", c);
+            spinlock_acquire(&console_readwrite_lock);
 
-            running_readline = 0;
+//            running_readline = 0;
             spinlock_release(&console_readwrite_lock);
 
             return NULL;
@@ -111,7 +116,7 @@ char *readline(const char *prompt)
             putchar('\n');
             linebuf[i] = 0;
 
-            running_readline = 0;
+//            running_readline = 0;
             spinlock_release(&console_readwrite_lock);
 
             return linebuf;

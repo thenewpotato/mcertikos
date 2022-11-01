@@ -8,7 +8,6 @@
 #include <lib/spinlock.h>
 
 extern spinlock_t console_readwrite_lock;
-extern int running_readline;
 
 struct dprintbuf {
     int idx;  /* current buffer index */
@@ -40,10 +39,7 @@ int vdprintf(const char *fmt, va_list ap)
 {
     struct dprintbuf b;
 
-    if (running_readline == 0) {
-        // If running readline, we already have the lock
-        spinlock_acquire(&console_readwrite_lock);
-    }
+    spinlock_acquire(&console_readwrite_lock);
 
     b.idx = 0;
     b.cnt = 0;
@@ -52,9 +48,7 @@ int vdprintf(const char *fmt, va_list ap)
     b.buf[b.idx] = 0;
     cputs(b.buf);
 
-    if (running_readline == 0) {
-        spinlock_release(&console_readwrite_lock);
-    }
+    spinlock_release(&console_readwrite_lock);
 
     return b.cnt;
 }
