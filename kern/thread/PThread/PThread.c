@@ -9,7 +9,7 @@
 #include "thread/PTCBIntro/export.h"
 #include "dev/intr.h"
 
-spinlock_t thread_lock[NUM_CPUS];
+spinlock_t thread_lock;
 //spinlock_t sched_lock[NUM_CPUS];
 unsigned int milliseconds_elapsed[NUM_CPUS];
 
@@ -19,10 +19,11 @@ void thread_init(unsigned int mbi_addr)
     set_curid(0);
     tcb_set_state(0, TSTATE_RUN);
 
-    for (int i = 0; i < NUM_CPUS; i++) {
-        spinlock_init(&thread_lock[i]);
-//        spinlock_init(&sched_lock[i]);
-    }
+    spinlock_init(&thread_lock);
+//    for (int i = 0; i < NUM_CPUS; i++) {
+//        spinlock_init(&thread_lock[i]);
+////        spinlock_init(&sched_lock[i]);
+//    }
 }
 
 /**
@@ -38,7 +39,7 @@ unsigned int thread_spawn(void *entry, unsigned int id, unsigned int quota)
      * Put on scheduler queue
      * Release thread lock
      */
-    spinlock_acquire(&thread_lock[get_pcpu_idx()]);
+    spinlock_acquire(&thread_lock);
 
     unsigned int pid = kctx_new(entry, id, quota);
     if (pid != NUM_IDS) {
@@ -47,7 +48,7 @@ unsigned int thread_spawn(void *entry, unsigned int id, unsigned int quota)
         tqueue_enqueue(NUM_IDS + get_pcpu_idx(), pid);
     }
 
-    spinlock_release(&thread_lock[get_pcpu_idx()]);
+    spinlock_release(&thread_lock);
 
     return pid;
 }
@@ -73,7 +74,7 @@ void thread_yield(void)
      * set current id
      * release lock and context switch
      */
-    spinlock_acquire(&thread_lock[get_pcpu_idx()]);
+    spinlock_acquire(&thread_lock);
 
     milliseconds_elapsed[get_pcpu_idx()] = 0;
 
@@ -92,24 +93,28 @@ void thread_yield(void)
     set_curid(new_cur_pid);
 
     if (old_cur_pid != new_cur_pid) {
-        spinlock_release(&thread_lock[get_pcpu_idx()]);
+        spinlock_release(&thread_lock);
 
         kctx_switch(old_cur_pid, new_cur_pid);
 
         return;
     }
 
-    spinlock_release(&thread_lock[get_pcpu_idx()]);
+    spinlock_release(&thread_lock);
 }
 
 void thread_suspend(spinlock_t *cv_lock) {
     /*
      * Acquire thread lock
+     * release passed lock
+     * set old to sleep
      *
      */
 
-    spinlock_acquire(&thread_lock[get_pcpu_idx()]);
+    spinlock_acquire(&thread_lock);
     spinlock_release(cv_lock);
+
+    milliseconds_elapsed[get_pcpu_idx()] = 0;
 
     unsigned int old_cur_pid = get_curid();
 
@@ -125,32 +130,43 @@ void thread_suspend(spinlock_t *cv_lock) {
     set_curid(new_cur_pid);
 
     if (new_cur_pid != NUM_IDS) {
-        spinlock_release(&thread_lock[get_pcpu_idx()]);
+        spinlock_release(&thread_lock);
 
         kctx_switch(old_cur_pid, new_cur_pid);
 
         return;
     }
 
-    spinlock_release(&thread_lock[get_pcpu_idx()]);
+    spinlock_release(&thread_lock);
 }
 
 void thread_make_ready(unsigned int pid) {
-    spinlock_acquire(&thread_lock[get_pcpu_idx()]);
+    /*
+     * Acquire thread lock
+     * set state to ready
+     * release thread lock
+     */
+
+    spinlock_acquire(&thread_lock);
 
     tcb_set_state(pid, TSTATE_READY);
 //    tqueue_enqueue(NUM_IDS + tcb_get_cpu(pid), pid);
 
-    spinlock_release(&thread_lock[get_pcpu_idx()]);
+    spinlock_release(&thread_lock);
 }
 
 void sched_update() {
+    spinlock_acquire(&thread_lock);
 //    spinlock_acquire(&sched_lock[get_pcpu_idx()]);
     int current_cpu = get_pcpu_idx();
     milliseconds_elapsed[current_cpu] += 1000 / LAPIC_TIMER_INTR_FREQ;
     if (milliseconds_elapsed[current_cpu] >= SCHED_SLICE) {
         milliseconds_elapsed[current_cpu] = 0;
+        spinlock_release(&thread_lock);
         thread_yield();
+    } else {
+        spinlock_release(&thread_lock);
     }
+
 //    spinlock_release(&sched_lock[get_pcpu_idx()]);
 }
