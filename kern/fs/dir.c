@@ -5,7 +5,6 @@
 #include "dir.h"
 
 // Directories
-
 int dir_namecmp(const char *s, const char *t)
 {
     return strncmp(s, t, DIRSIZ);
@@ -15,7 +14,7 @@ int dir_namecmp(const char *s, const char *t)
  * Look for a directory entry in a directory.
  * If found, set *poff to byte offset of entry.
  */
-struct inode *dir_lookup(struct inode *dp, char *name, uint32_t * poff)
+struct inode *dir_lookup(struct inode *dp, char *name, uint32_t *poff)
 {
     uint32_t off, inum;
     struct dirent de;
@@ -23,7 +22,18 @@ struct inode *dir_lookup(struct inode *dp, char *name, uint32_t * poff)
     if (dp->type != T_DIR)
         KERN_PANIC("dir_lookup not DIR");
 
-    //TODO
+    for (unsigned int offset = 0; offset < dp->size; offset += sizeof(struct dirent))
+    {
+        struct dirent sub_dir;
+
+        inode_read(dp, (char *)(&sub_dir), offset, sizeof(struct dirent));
+
+        if (sub_dir.inum != 0 && dir_namecmp(name, sub_dir.name) == 0)
+        {
+            *poff = offset;
+            return inode_get(dp->dev, sub_dir.inum);
+        }
+    }
 
     return 0;
 }
@@ -31,9 +41,36 @@ struct inode *dir_lookup(struct inode *dp, char *name, uint32_t * poff)
 // Write a new directory entry (name, inum) into the directory dp.
 int dir_link(struct inode *dp, char *name, uint32_t inum)
 {
-    // TODO: Check that name is not present.
+    uint32_t poff;
+    inode *sub_directory = dir_lookup(dp, name, &poff);
+    // sub_directory already in directory
+    if (sub_directory != 0)
+    {
+        inode_put(sub_directory);
+        return -1;
+    }
 
-    // TODO: Look for an empty dirent.
+    for (unsigned int offset = 0; offset < dp->size; offset += sizeof(struct dirent))
+    {
+        struct dirent sub_dir;
+        inode_read(dp, (char *)(&sub_dir), offset, sizeof(struct dirent));
 
-    return 0;
+        if (sub_dir.inum == 0)
+        {
+            sub_dir.inum = inum;
+            strncpy(name, sub_dir.name, DIRSIZ);
+
+            int num_bytes = inode_write(dp, (char *)(&sub_dir), offset, sizeof(struct dirent));
+
+            if (num_bytes != sizeof(struct dirent))
+            {
+                KERN_PANIC("dir_link bad write");
+            }
+            return 0;
+        }
+    }
+
+    KERN_PANIC("dir_link directory full");
+
+    return -1;
 }
