@@ -37,10 +37,42 @@
  *   skipelem("a", name) = "", setting name = "a"
  *   skipelem("", name) = skipelem("////", name) = 0
  */
-static char *skipelem(char *path, char *name)
+static char *skipelem(volatile char *path, volatile char *name)
 {
-    // TODO
-    return 0;
+    unsigned int i = 0;
+    while (path[i] == '/')
+    {
+        i++;
+    }
+    unsigned int start = i;
+    while (path[i] != '/' && path[i] != '\0')
+    {
+        i++;
+    }
+
+    if (i - start == 0)
+    {
+        return 0;
+    }
+
+    if (i - start >= DIRSIZ)
+    {
+        // Exceeds bounds
+        strncpy(name, &path[start], DIRSIZ - 1);
+        name[DIRSIZ - 1] = '\0';
+    }
+    else
+    {
+        // Within bounds
+        strncpy(name, &path[start], i - start);
+        name[i - start] = '\0';
+    }
+
+    while (path[i] == '/')
+    {
+        i++;
+    }
+    return &path[i];
 }
 
 /**
@@ -52,21 +84,33 @@ static char *skipelem(char *path, char *name)
 static struct inode *namex(char *path, bool nameiparent, char *name)
 {
     struct inode *ip;
+    struct inode *parent;
 
     // If path is a full path, get the pointer to the root inode. Otherwise get
     // the inode corresponding to the current working directory.
-    if (*path == '/') {
+    if (*path == '/')
+    {
         ip = inode_get(ROOTDEV, ROOTINO);
-    } else {
-        ip = inode_dup((struct inode *) tcb_get_cwd(get_curid()));
+    }
+    else
+    {
+        ip = inode_dup((struct inode *)tcb_get_cwd(get_curid()));
     }
 
-    while ((path = skipelem(path, name)) != 0) {
-        // TODO
+    while ((path = skipelem(path, name)) != 0)
+    {
+        uint32_t poff;
+        parent = ip;
+        ip = dir_lookup(ip, name, &poff);
+        if (ip == 0)
+        {
+            return 0;
+        }
     }
-    if (nameiparent) {
+    if (nameiparent)
+    {
         inode_put(ip);
-        return 0;
+        return parent;
     }
     return ip;
 }

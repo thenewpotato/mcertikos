@@ -42,7 +42,7 @@ struct inode *dir_lookup(struct inode *dp, char *name, uint32_t *poff)
 int dir_link(struct inode *dp, char *name, uint32_t inum)
 {
     uint32_t poff;
-    inode *sub_directory = dir_lookup(dp, name, &poff);
+    struct inode *sub_directory = dir_lookup(dp, name, &poff);
     // sub_directory already in directory
     if (sub_directory != 0)
     {
@@ -58,7 +58,7 @@ int dir_link(struct inode *dp, char *name, uint32_t inum)
         if (sub_dir.inum == 0)
         {
             sub_dir.inum = inum;
-            strncpy(name, sub_dir.name, DIRSIZ);
+            strncpy(sub_dir.name, name, DIRSIZ);
 
             int num_bytes = inode_write(dp, (char *)(&sub_dir), offset, sizeof(struct dirent));
 

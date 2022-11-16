@@ -137,7 +137,8 @@ void thread_wakeup(void *chan)
         if (tcb_get_chan(pid) == chan) {
             tcb_set_chan(pid, 0);
             tcb_set_state(pid, TSTATE_READY);
-            tqueue_enqueue(NUM_IDS + tcb_get_cpu(pid), pid);
+            // For some reason, there is only one ready queue on this multi-CPU machine
+            tqueue_enqueue(NUM_IDS, pid);
         }
     }
     spinlock_release(&sched_lk);
