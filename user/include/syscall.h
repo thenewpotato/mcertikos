@@ -107,24 +107,22 @@ static gcc_inline int sys_fstat(int fd, struct file_stat *st)
   return errno ? -1 : 0;
 }
 
-static gcc_inline int sys_link(char *old, char *new, unsigned int old_length, unsigned int new_length)
+static gcc_inline int sys_link(char *old, char *new)
 {
   int errno, ret;
 
-  asm volatile("int %4"
+  asm volatile("int %2"
                : "=a"(errno), "=b"(ret)
                : "i"(T_SYSCALL),
                  "a"(SYS_link),
                  "b"(old),
-                 "c"(new),
-                 "d"(old_length),
-                 "e"(new_length)
+                 "c"(new)
                : "cc", "memory");
 
   return errno ? -1 : 0;
 }
 
-static gcc_inline int sys_unlink(char *path, unsigned int length)
+static gcc_inline int sys_unlink(char *path)
 {
   int errno, ret;
 
@@ -132,14 +130,13 @@ static gcc_inline int sys_unlink(char *path, unsigned int length)
                : "=a"(errno), "=b"(ret)
                : "i"(T_SYSCALL),
                  "a"(SYS_unlink),
-                 "b"(path),
-                 "c"(length)
+                 "b"(path)
                : "cc", "memory");
 
   return errno ? -1 : 0;
 }
 
-static gcc_inline int sys_open(char *path, int omode, unsigned int path_length)
+static gcc_inline int sys_open(char *path, int omode)
 {
   int errno;
   int fd;
@@ -149,14 +146,13 @@ static gcc_inline int sys_open(char *path, int omode, unsigned int path_length)
                : "i"(T_SYSCALL),
                  "a"(SYS_open),
                  "b"(path),
-                 "c"(omode),
-                 "d"(path_length)
+                 "c"(omode)
                : "cc", "memory");
 
   return errno ? -1 : fd;
 }
 
-static gcc_inline int sys_mkdir(char *path, unsigned int path_length)
+static gcc_inline int sys_mkdir(char *path)
 {
   int errno, ret;
 
@@ -164,14 +160,13 @@ static gcc_inline int sys_mkdir(char *path, unsigned int path_length)
                : "=a"(errno), "=b"(ret)
                : "i"(T_SYSCALL),
                  "a"(SYS_mkdir),
-                 "b"(path),
-                 "c"(path_length)
+                 "b"(path)
                : "cc", "memory");
 
   return errno ? -1 : 0;
 }
 
-static gcc_inline int sys_chdir(char *path, unsigned int path_length)
+static gcc_inline int sys_chdir(char *path)
 {
   int errno, ret;
 
@@ -179,8 +174,7 @@ static gcc_inline int sys_chdir(char *path, unsigned int path_length)
                : "=a"(errno), "=b"(ret)
                : "i"(T_SYSCALL),
                  "a"(SYS_chdir),
-                 "b"(path),
-                 "c"(path_length)
+                 "b"(path)
                : "cc", "memory");
 
   return errno ? -1 : 0;
