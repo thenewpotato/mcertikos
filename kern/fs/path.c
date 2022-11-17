@@ -84,7 +84,6 @@ static char *skipelem(volatile char *path, volatile char *name)
 static struct inode *namex(char *path, bool nameiparent, char *name)
 {
     struct inode *ip;
-    struct inode *parent;
 
     // If path is a full path, get the pointer to the root inode. Otherwise get
     // the inode corresponding to the current working directory.
@@ -99,19 +98,27 @@ static struct inode *namex(char *path, bool nameiparent, char *name)
 
     while ((path = skipelem(path, name)) != 0)
     {
+        inode_lock(ip);
         uint32_t poff;
-        parent = ip;
+        if (ip->type != T_DIR)
+        {
+            inode_unlockput(ip);
+            return 0;
+        }
+        if (nameiparent && path[0] == '\0')
+        {
+            inode_unlock(ip);
+            return ip;
+        }
         ip = dir_lookup(ip, name, &poff);
         if (ip == 0)
         {
+            inode_unlockput(ip);
             return 0;
         }
+        inode_unlockput(ip);
     }
-    if (nameiparent)
-    {
-        inode_put(ip);
-        return parent;
-    }
+    inode_dup(ip);
     return ip;
 }
 

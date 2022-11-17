@@ -16,6 +16,10 @@
 #include "fcntl.h"
 #include "log.h"
 
+#define KERNEL_BUFFER_SIZE 10000
+
+char kernel_buffer[KERNEL_BUFFER_SIZE];
+
 /**
  * This function is not a system call handler, but an auxiliary function
  * used by sys_open.
@@ -26,7 +30,15 @@
  */
 static int fdalloc(struct file *f)
 {
-    // TODO
+    struct file **open_files = tcb_get_openfiles(get_curid());
+
+    for (unsigned int i = 0; i < NOFILE; i++)
+    {
+        if (open_files[i] == NULL)
+        {
+            
+        }
+    }
     return -1;
 }
 
@@ -41,7 +53,28 @@ static int fdalloc(struct file *f)
  */
 void sys_read(tf_t *tf)
 {
-    // TODO
+    // unsigned int cur_pid;
+    // unsigned int fd; 
+    // unsigned int str_uva, nbytes;
+
+    // cur_pid = get_curid();
+
+    // fd = syscall_get_arg2(tf);
+    // read_buf  = syscall_get_arg3(tf);
+    // nbytes = syscall_get_arg4(tf);
+
+    // if (nbytes >= KERNEL_BUFFER_SIZE){
+    //     syscall_set_errno(tf, E_INVAL_ADDR);
+    //     return;
+    // }
+    
+    // if (pt_copyin(cur_pid, cur_pos, sys_buf[cur_pid], nbytes) != nbytes) {
+    //     syscall_set_errno(tf, E_MEM);
+    //     return;
+    // }
+    
+    // pt_copyin(cur_id, syscall_get_arg2(tf), old, 128);
+
 }
 
 /**
@@ -64,7 +97,7 @@ void sys_write(tf_t *tf)
  */
 void sys_close(tf_t *tf)
 {
-    // TODO
+    // file_close(sys_call_get_arg2(tf));
 }
 
 /**
@@ -79,15 +112,24 @@ void sys_fstat(tf_t *tf)
 /**
  * Create the path new as a link to the same inode as old.
  */
-void sys_link(tf_t * tf)
+void sys_link(tf_t *tf)
 {
-    char name[DIRSIZ], new[128], old[128];
+
+    unsigned int old_size = syscall_get_arg4(tf);
+
+    unsigned int new_size = syscall_get_arg5(tf);
+    char name[DIRSIZ], new[new_size + 1], old[old_size + 1];
     struct inode *dp, *ip;
 
-    pt_copyin(get_curid(), syscall_get_arg2(tf), old, 128);
-    pt_copyin(get_curid(), syscall_get_arg3(tf), new, 128);
+    pt_copyin(get_curid(), syscall_get_arg2(tf), old, syscall_get_arg4(tf));
+    pt_copyin(get_curid(), syscall_get_arg3(tf), new, syscall_get_arg5(tf));
 
-    if ((ip = namei(old)) == 0) {
+
+    new[new_size] = '\0';
+    old[old_size] = '\0';
+
+    if ((ip = namei(old)) == 0)
+    {
         syscall_set_errno(tf, E_NEXIST);
         return;
     }
@@ -95,7 +137,8 @@ void sys_link(tf_t * tf)
     begin_trans();
 
     inode_lock(ip);
-    if (ip->type == T_DIR) {
+    if (ip->type == T_DIR)
+    {
         inode_unlockput(ip);
         commit_trans();
         syscall_set_errno(tf, E_DISK_OP);
@@ -109,7 +152,8 @@ void sys_link(tf_t * tf)
     if ((dp = nameiparent(new, name)) == 0)
         goto bad;
     inode_lock(dp);
-    if (dp->dev != ip->dev || dir_link(dp, name, ip->inum) < 0) {
+    if (dp->dev != ip->dev || dir_link(dp, name, ip->inum) < 0)
+    {
         inode_unlockput(dp);
         goto bad;
     }
@@ -139,8 +183,9 @@ static int isdirempty(struct inode *dp)
     int off;
     struct dirent de;
 
-    for (off = 2 * sizeof(de); off < dp->size; off += sizeof(de)) {
-        if (inode_read(dp, (char *) &de, off, sizeof(de)) != sizeof(de))
+    for (off = 2 * sizeof(de); off < dp->size; off += sizeof(de))
+    {
+        if (inode_read(dp, (char *)&de, off, sizeof(de)) != sizeof(de))
             KERN_PANIC("isdirempty: readi");
         if (de.inum != 0)
             return 0;
@@ -152,12 +197,17 @@ void sys_unlink(tf_t *tf)
 {
     struct inode *ip, *dp;
     struct dirent de;
-    char name[DIRSIZ], path[128];
+
+    unsigned int path_length = syscall_get_arg3(tf);
+    char name[DIRSIZ], path[path_length + 1];
     uint32_t off;
 
-    pt_copyin(get_curid(), syscall_get_arg2(tf), path, 128);
+    pt_copyin(get_curid(), syscall_get_arg2(tf), path, path_length);
 
-    if ((dp = nameiparent(path, name)) == 0) {
+    path[path_length] = '\0'; 
+
+    if ((dp = nameiparent(path, name)) == 0)
+    {
         syscall_set_errno(tf, E_DISK_OP);
         return;
     }
@@ -176,15 +226,17 @@ void sys_unlink(tf_t *tf)
 
     if (ip->nlink < 1)
         KERN_PANIC("unlink: nlink < 1");
-    if (ip->type == T_DIR && !isdirempty(ip)) {
+    if (ip->type == T_DIR && !isdirempty(ip))
+    {
         inode_unlockput(ip);
         goto bad;
     }
 
     memset(&de, 0, sizeof(de));
-    if (inode_write(dp, (char *) &de, off, sizeof(de)) != sizeof(de))
+    if (inode_write(dp, (char *)&de, off, sizeof(de)) != sizeof(de))
         KERN_PANIC("unlink: writei");
-    if (ip->type == T_DIR) {
+    if (ip->type == T_DIR)
+    {
         dp->nlink--;
         inode_update(dp);
     }
@@ -216,7 +268,8 @@ static struct inode *create(char *path, short type, short major, short minor)
         return 0;
     inode_lock(dp);
 
-    if ((ip = dir_lookup(dp, name, &off)) != 0) {
+    if ((ip = dir_lookup(dp, name, &off)) != 0)
+    {
         inode_unlockput(dp);
         inode_lock(ip);
         if (type == T_FILE && ip->type == T_FILE)
@@ -234,12 +287,12 @@ static struct inode *create(char *path, short type, short major, short minor)
     ip->nlink = 1;
     inode_update(ip);
 
-    if (type == T_DIR) {  // Create . and .. entries.
-        dp->nlink++;      // for ".."
+    if (type == T_DIR)
+    {                // Create . and .. entries.
+        dp->nlink++; // for ".."
         inode_update(dp);
         // No ip->nlink++ for ".": avoid cyclic ref count.
-        if (dir_link(ip, ".", ip->inum) < 0
-            || dir_link(ip, "..", dp->inum) < 0)
+        if (dir_link(ip, ".", ip->inum) < 0 || dir_link(ip, "..", dp->inum) < 0)
             KERN_PANIC("create dots");
     }
 
@@ -252,31 +305,41 @@ static struct inode *create(char *path, short type, short major, short minor)
 
 void sys_open(tf_t *tf)
 {
-    char path[128];
+
+
+    unsigned int path_length = syscall_get_arg4(tf); 
+    char path[path_length + 1];
     int fd, omode;
     struct file *f;
     struct inode *ip;
 
-    pt_copyin(get_curid(), syscall_get_arg2(tf), path, 128);
+    pt_copyin(get_curid(), syscall_get_arg2(tf), path, path_length);
+    path[path_length] = '\0';
     omode = syscall_get_arg3(tf);
 
-    if (omode & O_CREATE) {
+    if (omode & O_CREATE)
+    {
         begin_trans();
         ip = create(path, T_FILE, 0, 0);
         commit_trans();
-        if (ip == 0) {
+        if (ip == 0)
+        {
             syscall_set_retval1(tf, -1);
             syscall_set_errno(tf, E_CREATE);
             return;
         }
-    } else {
-        if ((ip = namei(path)) == 0) {
+    }
+    else
+    {
+        if ((ip = namei(path)) == 0)
+        {
             syscall_set_retval1(tf, -1);
             syscall_set_errno(tf, E_NEXIST);
             return;
         }
         inode_lock(ip);
-        if (ip->type == T_DIR && omode != O_RDONLY) {
+        if (ip->type == T_DIR && omode != O_RDONLY)
+        {
             inode_unlockput(ip);
             syscall_set_retval1(tf, -1);
             syscall_set_errno(tf, E_DISK_OP);
@@ -284,7 +347,8 @@ void sys_open(tf_t *tf)
         }
     }
 
-    if ((f = file_alloc()) == 0 || (fd = fdalloc(f)) < 0) {
+    if ((f = file_alloc()) == 0 || (fd = fdalloc(f)) < 0)
+    {
         if (f)
             file_close(f);
         inode_unlockput(ip);
@@ -305,13 +369,17 @@ void sys_open(tf_t *tf)
 
 void sys_mkdir(tf_t *tf)
 {
-    char path[128];
+
+    unsigned int path_length = syscall_get_arg(tf);
+    char path[path_length + 1];
     struct inode *ip;
 
     pt_copyin(get_curid(), syscall_get_arg2(tf), path, 128);
 
+    path[path_length] = '\0';
     begin_trans();
-    if ((ip = (struct inode *) create(path, T_DIR, 0, 0)) == 0) {
+    if ((ip = (struct inode *)create(path, T_DIR, 0, 0)) == 0)
+    {
         commit_trans();
         syscall_set_errno(tf, E_DISK_OP);
         return;
@@ -323,18 +391,23 @@ void sys_mkdir(tf_t *tf)
 
 void sys_chdir(tf_t *tf)
 {
-    char path[128];
+
+    unsigned int path_length = syscall_get_arg3(tf);
+    char path[path_length + 1];
     struct inode *ip;
     int pid = get_curid();
 
     pt_copyin(get_curid(), syscall_get_arg2(tf), path, 128);
 
-    if ((ip = namei(path)) == 0) {
+    path[path_length] = '\0';
+    if ((ip = namei(path)) == 0)
+    {
         syscall_set_errno(tf, E_DISK_OP);
         return;
     }
     inode_lock(ip);
-    if (ip->type != T_DIR) {
+    if (ip->type != T_DIR)
+    {
         inode_unlockput(ip);
         syscall_set_errno(tf, E_DISK_OP);
         return;

@@ -30,7 +30,9 @@ struct inode *dir_lookup(struct inode *dp, char *name, uint32_t *poff)
 
         if (sub_dir.inum != 0 && dir_namecmp(name, sub_dir.name) == 0)
         {
-            *poff = offset;
+            if (poff != NULL) {
+                *poff = offset;
+            }
             return inode_get(dp->dev, sub_dir.inum);
         }
     }
