@@ -123,6 +123,7 @@ static struct inode *namex(char *path, bool nameiparent, char *name)
         // if (child != 0) {
         //     KERN_INFO("inode inum=%d type=%d\n", ip);\
         // }
+        ip = child;
 
         if (child == 0)
         {
@@ -130,6 +131,7 @@ static struct inode *namex(char *path, bool nameiparent, char *name)
         }
     }
     inode_dup(ip);
+    KERN_INFO("namex: returning inum=%d\n", ip->inum);
     return ip;
 }
 

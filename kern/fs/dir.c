@@ -36,7 +36,7 @@ struct inode *dir_lookup(struct inode *dp, char *name, uint32_t *poff)
             {
                 *poff = offset;
             }
-            KERN_INFO("dir_lookup found entry inum=%d\n", sub_dir.inum);
+            // KERN_INFO("dir_lookup found entry inum=%d\n", sub_dir.inum);
             return inode_get(dp->dev, sub_dir.inum);
         }
     }

@@ -9,15 +9,19 @@
 #include <kern/thread/PTCBIntro/export.h>
 #include <kern/thread/PCurID/export.h>
 #include <kern/trap/TSyscallArg/export.h>
-
+#include <kern/lib/spinlock.h>
 #include "dir.h"
 #include "path.h"
 #include "file.h"
 #include "fcntl.h"
 #include "log.h"
 
+// Kernel buffer does not need to be explicitly cleared/erased between uses.
+// The required number of bytes at the beginning of the kernel buffer is simply overwritten
+// and when data is read from the kernel buffer, only the same number of bytes is read.
+// It is sufficient to ensure that the procedure writing to and reading from the kernel
+// buffer is consecutive (i.e. atomic).
 #define KERNEL_BUFFER_SIZE 10000
-
 char kernel_buffer[KERNEL_BUFFER_SIZE];
 
 // file system init -> dev init
@@ -33,15 +37,15 @@ char kernel_buffer[KERNEL_BUFFER_SIZE];
 static int fdalloc(struct file *f)
 {
     struct file **open_files = tcb_get_openfiles(get_curid());
-    for (unsigned int i = 0; i < NOFILE; i++)
+    for (unsigned int fd = 0; fd < NOFILE; fd++)
     {
-        if (open_files[i] == NULL)
+        // Available file descriptors will have NULL pointers
+        if (open_files[fd] == NULL)
         {
-            tcb_set_openfiles(get_curid(), i, f);
-            return i;
+            tcb_set_openfiles(get_curid(), fd, f);
+            return fd;
         }
     }
-
     return -1;
 }
 
@@ -57,37 +61,63 @@ static int fdalloc(struct file *f)
 
 void sys_read(tf_t *tf)
 {
-    // int fd = syscall_get_arg2(tf);
-    // unsigned int buf = syscall_get_arg3(tf);
-    // size_t nbytes = syscall_get_arg4(tf);
+    int fd = syscall_get_arg2(tf);
+    uintptr_t buf = syscall_get_arg3(tf);
+    size_t nbytes = syscall_get_arg4(tf);
+    // KERN_INFO("sys_read fd=%d buf=%p nbytes=%d\n", fd, buf, nbytes);
 
-    // unsigned int cur_pid = get_curid();
+    // Error checking
+    if (fd >= NOFILE || fd < 0)
+    {
+        syscall_set_retval1(tf, -1);
+        syscall_set_errno(tf, E_BADF);
+        return;
+    }
+    // if not in file descriptpor table or the number of bytes exceeds
+    if (nbytes >= KERNEL_BUFFER_SIZE)
+    {
+        syscall_set_retval1(tf, -1);
+        syscall_set_errno(tf, E_BADF);
+        return;
+    }
 
-    // struct file **open_files = tcb_get_openfiles(cur_pid);
+    unsigned int cur_pid = get_curid();
+    struct file **open_files = tcb_get_openfiles(cur_pid);
+    struct file *f = open_files[fd];
+    // KERN_INFO("sys_read inum=%d file size %d\n", f->ip->inum, f->ip->size);
 
-    // struct file *indexed_file = open_files[fd];
+    // More error checking
+    if (f == NULL || f->readable == 0 || f->type != FD_INODE)
+    {
+        KERN_INFO("sys_read: file descriptor bad\n");
+        syscall_set_retval1(tf, -1);
+        syscall_set_errno(tf, E_BADF);
+        return;
+    }
 
-    // // if not in file descriptpor table or the number of bytes exceeds
-    // if (nbytes >= 10000 || indexed_file == NULL)
-    // {
-    //     syscall_set_errno(tf, -1);
-    //     return;
-    // }
-    // else
-    // {
-    //     if (file_read(indexed_file, kernel_buffer, nbytes) == -1)
-    //     {
-    //         syscall_set_errno(tf, -1);
-    //         return;
-    //     }
-    //     if (pt_copyout(kernel_buffer, cur_pid, p, nbytes) == -1)
-    //     {
-    //         syscall_set_errno(tf, -1);
-    //         return;
-    //     }
-    // }
-    return;
+    int bytesReadFromFile;
+
+    if ((bytesReadFromFile = file_read(f, kernel_buffer, nbytes)) == -1)
+    {
+        KERN_INFO("sys_read: file_read failed\n");
+        syscall_set_retval1(tf, -1);
+        syscall_set_errno(tf, E_BADF);
+        return;
+    }
+    KERN_INFO("sys_read: bytesReadFromFile=%d\n", bytesReadFromFile);
+    int bytesCopiedToUser;
+    if ((bytesCopiedToUser = pt_copyout(kernel_buffer, cur_pid, buf, bytesReadFromFile)) == 0)
+    {
+        KERN_INFO("sys_read: pt_copyout failed %d %d %d\n", bytesCopiedToUser, bytesReadFromFile, nbytes);
+        syscall_set_retval1(tf, -1);
+        syscall_set_errno(tf, E_BADF);
+        return;
+    }
+    // KERN_INFO("sys_read successful, bytesCopiedToUser=%d\n", bytesCopiedToUser);
+    syscall_set_retval1(tf, bytesCopiedToUser);
+    syscall_set_errno(tf, E_SUCC);
 }
+
 /**
  * Write n bytes of data in the user's buffer to the file indexed by the file descriptor.
  * You should first copy the data info an in-kernel buffer with pt_copyin and then
@@ -99,21 +129,55 @@ void sys_read(tf_t *tf)
  */
 void sys_write(tf_t *tf)
 {
-    // int fd = syscall_get_arg2(tf);
-    // unsigned int buf = syscall_get_arg3(tf);
-    // size_t nbytes = syscall_get_arg4(tf);
+    int fd = syscall_get_arg2(tf);
+    uintptr_t buf = syscall_get_arg3(tf);
+    size_t nbytes = syscall_get_arg4(tf);
 
-    // unsigned int cur_pid = get_curid();
+    // Error checking
+    if (fd >= NOFILE || fd < 0)
+    {
+        syscall_set_retval1(tf, -1);
+        syscall_set_errno(tf, E_BADF);
+        return;
+    }
+    if (nbytes >= KERNEL_BUFFER_SIZE)
+    {
+        syscall_set_errno(tf, -1);
+        return;
+    }
 
-    // struct file **open_files = tcb_get_openfiles(cur_pid);
+    unsigned int cur_pid = get_curid();
+    struct file **open_files = tcb_get_openfiles(cur_pid);
+    struct file *f = open_files[fd];
+    // KERN_INFO("sys_write file size %d\n", f->ip->size);
 
-    // struct file *indexed_file = open_files[fd];
+    // More error checking
+    if (f == NULL || f->writable == 0 || f->type != FD_INODE)
+    {
+        syscall_set_retval1(tf, -1);
+        syscall_set_errno(tf, E_BADF);
+        return;
+    }
 
-    // if (indexed_file == NULL || nbytes >= 10000)
-    // {
-    //     syscall_set_errno(tf, E_BADF);
-    //     return;
-    // }
+    // Read user buffer into kernel buffer
+    int bytesCopiedFromUser;
+    if ((bytesCopiedFromUser = pt_copyin(cur_pid, buf, kernel_buffer, nbytes)) == 0)
+    {
+        syscall_set_retval1(tf, -1);
+        syscall_set_errno(tf, E_BADF);
+        return;
+    }
+    // Write kernel buffer into file
+    int bytesWrittenToFile;
+    if ((bytesWrittenToFile = file_write(f, kernel_buffer, bytesCopiedFromUser)) == -1)
+    {
+        syscall_set_retval1(tf, -1);
+        syscall_set_errno(tf, E_BADF);
+        return;
+    }
+
+    syscall_set_retval1(tf, bytesWrittenToFile);
+    syscall_set_errno(tf, E_SUCC);
 }
 
 /**
@@ -122,15 +186,64 @@ void sys_write(tf_t *tf)
  */
 void sys_close(tf_t *tf)
 {
-    // int fd = syscall_get_arg2(tf);
+    int fd = syscall_get_arg2(tf);
 
-    // return;
+    // Error checking
+    if (fd >= NOFILE || fd < 0)
+    {
+        syscall_set_retval1(tf, -1);
+        syscall_set_errno(tf, E_BADF);
+        return;
+    }
+
+    unsigned int cur_pid = get_curid();
+    struct file **open_files = tcb_get_openfiles(cur_pid);
+    struct file *f = open_files[fd];
+
+    // More error checking
+    if (f == NULL || f->type != FD_INODE)
+    {
+        syscall_set_retval1(tf, -1);
+        syscall_set_errno(tf, E_BADF);
+        return;
+    }
+
+    file_close(f);
+    tcb_set_openfiles(cur_pid, fd, NULL);
+
+    syscall_set_retval1(tf, 0);
+    syscall_set_errno(tf, E_SUCC);
 }
-// TODO
 
+// Constructs and returns a struct file_stat for the specified fd
 void sys_fstat(tf_t *tf)
 {
-    // TODO
+    int fd = syscall_get_arg2(tf);
+    uintptr_t fstatUser = syscall_get_arg3(tf);
+
+    // Error checking
+    if (fd >= NOFILE || fd < 0)
+    {
+        syscall_set_retval1(tf, -1);
+        syscall_set_errno(tf, E_BADF);
+        return;
+    }
+
+    unsigned int cur_pid = get_curid();
+    struct file **open_files = tcb_get_openfiles(cur_pid);
+    struct file *f = open_files[fd];
+
+    // TODO: Error check here
+    struct file_stat *fs = (struct file_stat *)fstatUser;
+
+    fs->type = f->ip->type;
+    fs->dev = f->ip->dev;
+    fs->ino = f->ip->inum;
+    fs->nlink = f->ip->nlink;
+    fs->size = f->ip->size;
+
+    syscall_set_retval1(tf, fstatUser);
+    syscall_set_errno(tf, E_SUCC);
     return;
 }
 
@@ -372,11 +485,12 @@ void sys_open(tf_t *tf)
 
     omode = syscall_get_arg3(tf);
 
+    // ip is the inode that points to the file being opened
     if (omode & O_CREATE)
     {
         begin_trans();
         ip = create(path, T_FILE, 0, 0);
-        KERN_INFO("open: create status %p\n", ip);
+        // KERN_INFO("open: create status %p\n", ip);
         commit_trans();
         if (ip == 0)
         {
@@ -403,6 +517,10 @@ void sys_open(tf_t *tf)
         }
     }
 
+    // file descriptor array is an array of struct file pointers
+    // we find an empty index in the file d array
+    // we allocate a struct file
+    // then we point the fd array entry to the file struct
     if ((f = file_alloc()) == 0 || (fd = fdalloc(f)) < 0)
     {
         if (f)
@@ -414,11 +532,14 @@ void sys_open(tf_t *tf)
     }
     inode_unlock(ip);
 
+    // initialize fields of file struct
     f->type = FD_INODE;
     f->ip = ip;
     f->off = 0;
     f->readable = !(omode & O_WRONLY);
     f->writable = (omode & O_WRONLY) || (omode & O_RDWR);
+
+    // KERN_INFO("sys_open inum=%d\n", ip->inum);
     syscall_set_retval1(tf, fd);
     syscall_set_errno(tf, E_SUCC);
 }

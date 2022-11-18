@@ -10,7 +10,8 @@
 #include "file.h"
 #include "log.h"
 
-struct {
+struct
+{
     spinlock_t lock;
     struct file file[NFILE];
 } ftable;
@@ -20,6 +21,9 @@ void file_init(void)
     spinlock_init(&ftable.lock);
 }
 
+// file structs are shared across all processes and kernel
+// but there is a different fd array for each process that points to shared file structs
+
 /**
  * Allocate a file structure.
  */
@@ -28,8 +32,10 @@ struct file *file_alloc(void)
     struct file *f;
 
     spinlock_acquire(&ftable.lock);
-    for (f = ftable.file; f < ftable.file + NFILE; f++) {
-        if (f->ref == 0) {
+    for (f = ftable.file; f < ftable.file + NFILE; f++)
+    {
+        if (f->ref == 0)
+        {
             f->ref = 1;
             spinlock_release(&ftable.lock);
             return f;
@@ -54,6 +60,8 @@ struct file *file_dup(struct file *f)
 
 /**
  * Close file f. Decrement ref count, close when reaches 0.
+ * This only operates on the system-wide file structs
+ * It does not care about process-specific file-descriptors
  */
 void file_close(struct file *f)
 {
@@ -62,7 +70,8 @@ void file_close(struct file *f)
     spinlock_acquire(&ftable.lock);
     if (f->ref < 1)
         KERN_PANIC("file_close");
-    if (--f->ref > 0) {
+    if (--f->ref > 0)
+    {
         spinlock_release(&ftable.lock);
         return;
     }
@@ -71,7 +80,8 @@ void file_close(struct file *f)
     f->type = FD_NONE;
     spinlock_release(&ftable.lock);
 
-    if (ff.type == FD_INODE) {
+    if (ff.type == FD_INODE)
+    {
         begin_trans();
         inode_put(ff.ip);
         commit_trans();
@@ -83,7 +93,8 @@ void file_close(struct file *f)
  */
 int file_stat(struct file *f, struct file_stat *st)
 {
-    if (f->type == FD_INODE) {
+    if (f->type == FD_INODE)
+    {
         inode_lock(f->ip);
         inode_stat(f->ip, st);
         inode_unlock(f->ip);
@@ -93,7 +104,7 @@ int file_stat(struct file *f, struct file_stat *st)
 }
 
 /**
- * Read from file f.
+ * Read from file f. Returns -1 if failed
  */
 int file_read(struct file *f, char *addr, int n)
 {
@@ -101,10 +112,15 @@ int file_read(struct file *f, char *addr, int n)
 
     if (f->readable == 0)
         return -1;
-    if (f->type == FD_INODE) {
+    if (f->type == FD_INODE)
+    {
         inode_lock(f->ip);
+        // Each file struct has offset pointer
         if ((r = inode_read(f->ip, addr, f->off, n)) > 0)
             f->off += r;
+        // Return val of inode_read is the actual number of bytes read (may be less than n)
+        // This function also returns the actual number of bytes read (or error)
+        // KERN_INFO("file_read: n=%d inode_read=%d\n", n, r);
         inode_unlock(f->ip);
         return r;
     }
@@ -113,7 +129,7 @@ int file_read(struct file *f, char *addr, int n)
 }
 
 /**
- * Write to file f.
+ * Write to file f. Returns -1 if failed
  */
 int file_write(struct file *f, char *addr, int n)
 {
@@ -121,7 +137,8 @@ int file_write(struct file *f, char *addr, int n)
 
     if (f->writable == 0)
         return -1;
-    if (f->type == FD_INODE) {
+    if (f->type == FD_INODE)
+    {
         // Write a few blocks at a time to avoid exceeding
         // the maximum log transaction size, including
         // i-node, indirect block, allocation blocks,
@@ -130,7 +147,8 @@ int file_write(struct file *f, char *addr, int n)
         // might be writing a device like the console.
         int max = ((LOGSIZE - 1 - 1 - 2) / 2) * 512;
         int i = 0;
-        while (i < n) {
+        while (i < n)
+        {
             int n1 = n - i;
             if (n1 > max)
                 n1 = max;
