@@ -49,7 +49,7 @@ static char *skipelem(volatile char *path, volatile char *name)
     {
         i++;
     }
-
+    // KERN_INFO("i: %d, start: %d\n",i, start);
     if (i - start == 0)
     {
         return 0;
@@ -72,6 +72,7 @@ static char *skipelem(volatile char *path, volatile char *name)
     {
         i++;
     }
+    // KERN_INFO("path[i]: %d\n", path[i]);
     return &path[i];
 }
 
@@ -85,6 +86,7 @@ static struct inode *namex(char *path, bool nameiparent, char *name)
 {
     struct inode *ip;
 
+    // KERN_INFO("namex path=%s, nameiparent=%d\n", path, nameiparent);
     // If path is a full path, get the pointer to the root inode. Otherwise get
     // the inode corresponding to the current working directory.
     if (*path == '/')
@@ -98,25 +100,34 @@ static struct inode *namex(char *path, bool nameiparent, char *name)
 
     while ((path = skipelem(path, name)) != 0)
     {
+        // KERN_INFO("Hi path=%s name=%s\n", path, name);
         inode_lock(ip);
+        // KERN_INFO("namex iter path=%s name=%s\n", path, name);
         uint32_t poff;
         if (ip->type != T_DIR)
         {
             inode_unlockput(ip);
             return 0;
         }
+        // KERN_INFO("info: path[0]: %c", path[0]);
         if (nameiparent && path[0] == '\0')
         {
+            // KERN_INFO("return parent ip inum=%d type=%d name=%s\n", ip->inum, ip->type, name);
             inode_unlock(ip);
             return ip;
         }
-        ip = dir_lookup(ip, name, &poff);
-        if (ip == 0)
+        struct inode *child = dir_lookup(ip, name, &poff);
+        inode_unlockput(ip);
+
+        // KERN_INFO("child inode pointer=%p\n", ip);
+        // if (child != 0) {
+        //     KERN_INFO("inode inum=%d type=%d\n", ip);\
+        // }
+
+        if (child == 0)
         {
-            inode_unlockput(ip);
             return 0;
         }
-        inode_unlockput(ip);
     }
     inode_dup(ip);
     return ip;

@@ -111,12 +111,17 @@ static gcc_inline int sys_link(char *old, char *new)
 {
   int errno, ret;
 
+  size_t oldlen = strlen(old);
+  size_t newlen = strlen(new);
+
   asm volatile("int %2"
                : "=a"(errno), "=b"(ret)
                : "i"(T_SYSCALL),
                  "a"(SYS_link),
                  "b"(old),
-                 "c"(new)
+                 "c"(new),
+                 "d"(oldlen),
+                 "S"(newlen)
                : "cc", "memory");
 
   return errno ? -1 : 0;
@@ -126,11 +131,14 @@ static gcc_inline int sys_unlink(char *path)
 {
   int errno, ret;
 
+  size_t len = strlen(path);
+
   asm volatile("int %2"
                : "=a"(errno), "=b"(ret)
                : "i"(T_SYSCALL),
                  "a"(SYS_unlink),
-                 "b"(path)
+                 "b"(path),
+                 "c"(len)
                : "cc", "memory");
 
   return errno ? -1 : 0;
@@ -140,13 +148,14 @@ static gcc_inline int sys_open(char *path, int omode)
 {
   int errno;
   int fd;
-
+  size_t len = strlen(path);
   asm volatile("int %2"
                : "=a"(errno), "=b"(fd)
                : "i"(T_SYSCALL),
                  "a"(SYS_open),
                  "b"(path),
-                 "c"(omode)
+                 "c"(omode),
+                 "d"(len)
                : "cc", "memory");
 
   return errno ? -1 : fd;
@@ -155,12 +164,13 @@ static gcc_inline int sys_open(char *path, int omode)
 static gcc_inline int sys_mkdir(char *path)
 {
   int errno, ret;
-
+  size_t len = strlen(path);
   asm volatile("int %2"
                : "=a"(errno), "=b"(ret)
                : "i"(T_SYSCALL),
                  "a"(SYS_mkdir),
-                 "b"(path)
+                 "b"(path),
+                 "c"(len)
                : "cc", "memory");
 
   return errno ? -1 : 0;
@@ -169,12 +179,13 @@ static gcc_inline int sys_mkdir(char *path)
 static gcc_inline int sys_chdir(char *path)
 {
   int errno, ret;
-
+  size_t len = strlen(path);
   asm volatile("int %2"
                : "=a"(errno), "=b"(ret)
                : "i"(T_SYSCALL),
                  "a"(SYS_chdir),
-                 "b"(path)
+                 "b"(path),
+                 "c"(len)
                : "cc", "memory");
 
   return errno ? -1 : 0;
