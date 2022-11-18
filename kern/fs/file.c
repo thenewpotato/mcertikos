@@ -21,6 +21,8 @@ void file_init(void)
     spinlock_init(&ftable.lock);
 }
 
+
+
 // file structs are shared across all processes and kernel
 // but there is a different fd array for each process that points to shared file structs
 

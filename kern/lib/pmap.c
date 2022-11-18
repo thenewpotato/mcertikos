@@ -1,6 +1,7 @@
 #include <lib/pmap.h>
 #include <lib/string.h>
 #include <lib/types.h>
+#include <kern/lib/debug.h>
 
 #define PTE_P 0x001 /* Present */
 #define PTE_W 0x002 /* Writeable */
@@ -55,11 +56,14 @@ size_t pt_copyin(uint32_t pmap_id, uintptr_t uva, void *kva, size_t len)
 // Returns number of bytes copied out (0 if failure)
 size_t pt_copyout(void *kva, uint32_t pmap_id, uintptr_t uva, size_t len)
 {
-    if (!(VM_USERLO <= uva && uva + len <= VM_USERHI))
+    if (!(VM_USERLO <= uva && uva + len <= VM_USERHI)) {
+        // KERN_INFO("pt_copyout: user bounds violated\n");
         return 0;
-
-    if ((uintptr_t)kva + len > VM_USERHI)
+    }
+    if ((uintptr_t)kva + len > VM_USERHI) {
+        // KERN_INFO("pt_copyout: kernel bounds violated\n");
         return 0;
+    }
 
     size_t copied = 0;
 
@@ -85,6 +89,7 @@ size_t pt_copyout(void *kva, uint32_t pmap_id, uintptr_t uva, size_t len)
         copied += size;
     }
 
+    // KERN_INFO("pt_copyout: copied out %d bytes from %p to %p\n", copied, kva, uva);
     return copied;
 }
 

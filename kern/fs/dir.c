@@ -59,17 +59,30 @@ int dir_link(struct inode *dp, char *name, uint32_t inum)
         return -1;
     }
 
-    for (unsigned int offset = 0; offset < dp->size; offset += sizeof(struct dirent))
+    // KERN_INFO("dir_link: dir file has size %d, dirent entry size=%d\n", dp->size, sizeof(struct dirent));
+    // KERN_INFO("dir_link %d\n", MAXFILE * BSIZE);
+
+    /* Note that the directory entry can expand beyond its current size by allocating more blocks, 
+    which is why we loop all the way from 0 to the maximum size of bytes a file can hold, which is
+    MAXFILE (max # blocks) * BSIZE (# bytes in each block)*/
+    for (unsigned int offset = 0; offset < MAXFILE * BSIZE; offset += sizeof(struct dirent))
     {
         struct dirent sub_dir;
         inode_read(dp, (char *)(&sub_dir), offset, sizeof(struct dirent));
+        // KERN_INFO("dir.c: offset=%d, readstatus = %d\n", offset, readstatus);
 
-        if (sub_dir.inum == 0)
+        /* If we have found an empty dirent entry within the current block, the read statement above
+        will have succeeded, and the sub_dir (what the read call read into) will have an inum of 0.
+        On the other hand, if there are no empty dirent entries within the current block, then offset
+        is sitting at exactly dp->size (next byte after end of file) because BSIZE is divisible by 
+        sizeof(struct dirent). If this is the case, then we can proceed with the write, which automatically
+        appends a new block if the offset occurs at the last block boundary. */
+        if (sub_dir.inum == 0 || offset == dp->size)
         {
             // KERN_INFO("dir_link found empty dirent inum=%d\n", sub_dir.inum);
             sub_dir.inum = inum;
             strncpy(sub_dir.name, name, DIRSIZ);
-            // KERN_INFO("dir_link writing inum=%d name=%s\n", sub_dir.inum, sub_dir.name);
+            // KERN_INFO("dir_link writing inumf=%d name=%s\n", sub_dir.inum, sub_dir.name);
 
             int num_bytes = inode_write(dp, (char *)(&sub_dir), offset, sizeof(struct dirent));
 

@@ -19,6 +19,7 @@ void intr_init(void);
 void bufcache_init(void);
 void inode_init(void);
 void file_init(void);
+void kernel_buffer_init(void);
 
 void devinit(uintptr_t mbi_addr)
 {
@@ -46,17 +47,18 @@ void devinit(uintptr_t mbi_addr)
 
     pmmap_init(mbi_addr);
 
-    bufcache_init();  // buffer cache
-    file_init();      // file table
-    inode_init();     // inode cache
+    bufcache_init(); // buffer cache
+    file_init();     // file table
+    inode_init();    // inode cache
     ide_init();
+    kernel_buffer_init();
     KERN_INFO("[BSP KERN] IDE disk driver initialized\n");
 }
 
 void devinit_ap(void)
 {
     /* Figure out the current (booting) kernel stack) */
-    struct kstack *ks = (struct kstack *) ROUNDDOWN(read_esp(), KSTACK_SIZE);
+    struct kstack *ks = (struct kstack *)ROUNDDOWN(read_esp(), KSTACK_SIZE);
 
     KERN_ASSERT(ks != NULL);
     KERN_ASSERT(1 <= ks->cpu_idx && ks->cpu_idx < 8);

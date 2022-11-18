@@ -48,7 +48,7 @@ struct file {
 #define read(fd, str, n)  sys_read((fd), (str), (n))
 #define write(fd, str, n) sys_write((fd), (str), (n))
 #define close(fd)         sys_close((fd))
-#define fstat(fd)         sys_fstat((fd))
+#define fstat(fd, st)     sys_fstat((fd), (st))
 #define link(old, new)    sys_link((old), (new))
 #define unlink(path)      sys_unlink((path))
 #define open(path, omode) sys_open((path), (omode))

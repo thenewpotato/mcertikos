@@ -16,7 +16,7 @@ void sys_unlink(tf_t *tf);
 void sys_open(tf_t *tf);
 void sys_mkdir(tf_t *tf);
 void sys_chdir(tf_t *tf);
+void kernel_buffer_init(void);
+#endif /* _KERN_ */
 
-#endif  /* _KERN_ */
-
-#endif  /* !_KERN_FS_SYSFILE_H_ */
+#endif /* !_KERN_FS_SYSFILE_H_ */

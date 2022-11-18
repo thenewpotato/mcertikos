@@ -21,8 +21,20 @@
 // and when data is read from the kernel buffer, only the same number of bytes is read.
 // It is sufficient to ensure that the procedure writing to and reading from the kernel
 // buffer is consecutive (i.e. atomic).
+// We only need the kernel_buffer for write and read syscalls because the user data we read
+// from and write to in those syscalls can be as large as 10000 bytes, which exceeds the
+// kernel stack limit. For other functions like fstat, we can operate on kernel stack memory
+// instead.
 #define KERNEL_BUFFER_SIZE 10000
 char kernel_buffer[KERNEL_BUFFER_SIZE];
+
+spinlock_t kernel_buffer_lock;
+
+void kernel_buffer_init(void)
+{
+    spinlock_init(&kernel_buffer_lock);
+}
+
 
 // file system init -> dev init
 
@@ -58,7 +70,6 @@ static int fdalloc(struct file *f)
  * integer indicating the number of bytes actually read. Otherwise, the
  * functions shall return -1 and set errno E_BADF to indicate the error.
  */
-
 void sys_read(tf_t *tf)
 {
     int fd = syscall_get_arg2(tf);
@@ -95,24 +106,37 @@ void sys_read(tf_t *tf)
         return;
     }
 
+    spinlock_acquire(&kernel_buffer_lock);
     int bytesReadFromFile;
-
     if ((bytesReadFromFile = file_read(f, kernel_buffer, nbytes)) == -1)
     {
         KERN_INFO("sys_read: file_read failed\n");
         syscall_set_retval1(tf, -1);
         syscall_set_errno(tf, E_BADF);
+        spinlock_release(&kernel_buffer_lock);
         return;
     }
-    KERN_INFO("sys_read: bytesReadFromFile=%d\n", bytesReadFromFile);
+    // KERN_INFO("sys_read: bytesReadFromFile=%d\n", bytesReadFromFile);
+    // If bytesReadFromFile is positive, any errors handled by later if block
+    // If bytesReadFromFile is negative (-1), we already caught the error previously
+    // This block only fires if we are trying to read 0 bytes, we want this to go
+    // through without an error.
+    if (bytesReadFromFile == 0) {
+        spinlock_release(&kernel_buffer_lock);
+        syscall_set_retval1(tf, 0);
+        syscall_set_errno(tf, E_SUCC);
+        return;
+    }
     int bytesCopiedToUser;
     if ((bytesCopiedToUser = pt_copyout(kernel_buffer, cur_pid, buf, bytesReadFromFile)) == 0)
     {
         KERN_INFO("sys_read: pt_copyout failed %d %d %d\n", bytesCopiedToUser, bytesReadFromFile, nbytes);
         syscall_set_retval1(tf, -1);
         syscall_set_errno(tf, E_BADF);
+        spinlock_release(&kernel_buffer_lock);
         return;
     }
+    spinlock_release(&kernel_buffer_lock);
     // KERN_INFO("sys_read successful, bytesCopiedToUser=%d\n", bytesCopiedToUser);
     syscall_set_retval1(tf, bytesCopiedToUser);
     syscall_set_errno(tf, E_SUCC);
@@ -142,7 +166,8 @@ void sys_write(tf_t *tf)
     }
     if (nbytes >= KERNEL_BUFFER_SIZE)
     {
-        syscall_set_errno(tf, -1);
+        syscall_set_retval1(tf, -1);
+        syscall_set_errno(tf, E_BADF);
         return;
     }
 
@@ -159,12 +184,22 @@ void sys_write(tf_t *tf)
         return;
     }
 
+    // If we are trying to write 0 bytes, just do nothing and succeed. We cannot differentiate
+    // writing zero bytes and an error in pt_copyin.
+    if (nbytes == 0){ 
+        syscall_set_retval1(tf, 0); 
+        syscall_set_errno(tf, E_SUCC);
+        return;
+    }
+
     // Read user buffer into kernel buffer
+    spinlock_acquire(&kernel_buffer_lock);
     int bytesCopiedFromUser;
     if ((bytesCopiedFromUser = pt_copyin(cur_pid, buf, kernel_buffer, nbytes)) == 0)
     {
         syscall_set_retval1(tf, -1);
         syscall_set_errno(tf, E_BADF);
+        spinlock_release(&kernel_buffer_lock);
         return;
     }
     // Write kernel buffer into file
@@ -173,9 +208,11 @@ void sys_write(tf_t *tf)
     {
         syscall_set_retval1(tf, -1);
         syscall_set_errno(tf, E_BADF);
+        spinlock_release(&kernel_buffer_lock);
         return;
     }
-
+    spinlock_release(&kernel_buffer_lock);
+    // KERN_INFO("sys_write: wrote %d bytes\n", bytesWrittenToFile);
     syscall_set_retval1(tf, bytesWrittenToFile);
     syscall_set_errno(tf, E_SUCC);
 }
@@ -216,6 +253,7 @@ void sys_close(tf_t *tf)
 }
 
 // Constructs and returns a struct file_stat for the specified fd
+// Syscall has return value 0 if success, -1 in case of behavior
 void sys_fstat(tf_t *tf)
 {
     int fd = syscall_get_arg2(tf);
@@ -229,22 +267,34 @@ void sys_fstat(tf_t *tf)
         return;
     }
 
+    
     unsigned int cur_pid = get_curid();
     struct file **open_files = tcb_get_openfiles(cur_pid);
     struct file *f = open_files[fd];
 
-    // TODO: Error check here
-    struct file_stat *fs = (struct file_stat *)fstatUser;
+    // More error checking
+    if (f == NULL)
+    {
+        syscall_set_retval1(tf, -1);
+        syscall_set_errno(tf, E_BADF);
+        return;
+    }
 
-    fs->type = f->ip->type;
-    fs->dev = f->ip->dev;
-    fs->ino = f->ip->inum;
-    fs->nlink = f->ip->nlink;
-    fs->size = f->ip->size;
+    struct file_stat fs;
+    fs.type = f->ip->type;
+    fs.dev = f->ip->dev;
+    fs.ino = f->ip->inum;
+    fs.nlink = f->ip->nlink;
+    fs.size = f->ip->size;
 
-    syscall_set_retval1(tf, fstatUser);
+    if (pt_copyout(&fs, cur_pid, fstatUser, sizeof(struct file_stat)) == 0) { 
+        syscall_set_retval1(tf, -1);
+        syscall_set_errno(tf, E_BADF);
+        return;
+    }
+    
+    syscall_set_retval1(tf, 0);
     syscall_set_errno(tf, E_SUCC);
-    return;
 }
 
 /**

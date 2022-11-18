@@ -85,7 +85,6 @@ static char *skipelem(volatile char *path, volatile char *name)
 static struct inode *namex(char *path, bool nameiparent, char *name)
 {
     struct inode *ip;
-
     // KERN_INFO("namex path=%s, nameiparent=%d\n", path, nameiparent);
     // If path is a full path, get the pointer to the root inode. Otherwise get
     // the inode corresponding to the current working directory.
@@ -130,8 +129,8 @@ static struct inode *namex(char *path, bool nameiparent, char *name)
             return 0;
         }
     }
-    inode_dup(ip);
-    KERN_INFO("namex: returning inum=%d\n", ip->inum);
+    // inode_dup(ip);
+    // KERN_INFO("namex: returning inum=%d\n", ip->inum);
     return ip;
 }
 
