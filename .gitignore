@@ -21,3 +21,4 @@ Icon*
 eject.sh
 *.cerr
 .gdbinit
+.idea/
