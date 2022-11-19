@@ -35,7 +35,6 @@ void kernel_buffer_init(void)
     spinlock_init(&kernel_buffer_lock);
 }
 
-
 // file system init -> dev init
 
 /**
@@ -121,7 +120,8 @@ void sys_read(tf_t *tf)
     // If bytesReadFromFile is negative (-1), we already caught the error previously
     // This block only fires if we are trying to read 0 bytes, we want this to go
     // through without an error.
-    if (bytesReadFromFile == 0) {
+    if (bytesReadFromFile == 0)
+    {
         spinlock_release(&kernel_buffer_lock);
         syscall_set_retval1(tf, 0);
         syscall_set_errno(tf, E_SUCC);
@@ -186,8 +186,9 @@ void sys_write(tf_t *tf)
 
     // If we are trying to write 0 bytes, just do nothing and succeed. We cannot differentiate
     // writing zero bytes and an error in pt_copyin.
-    if (nbytes == 0){ 
-        syscall_set_retval1(tf, 0); 
+    if (nbytes == 0)
+    {
+        syscall_set_retval1(tf, 0);
         syscall_set_errno(tf, E_SUCC);
         return;
     }
@@ -267,7 +268,6 @@ void sys_fstat(tf_t *tf)
         return;
     }
 
-    
     unsigned int cur_pid = get_curid();
     struct file **open_files = tcb_get_openfiles(cur_pid);
     struct file *f = open_files[fd];
@@ -287,12 +287,13 @@ void sys_fstat(tf_t *tf)
     fs.nlink = f->ip->nlink;
     fs.size = f->ip->size;
 
-    if (pt_copyout(&fs, cur_pid, fstatUser, sizeof(struct file_stat)) == 0) { 
+    if (pt_copyout(&fs, cur_pid, fstatUser, sizeof(struct file_stat)) == 0)
+    {
         syscall_set_retval1(tf, -1);
         syscall_set_errno(tf, E_BADF);
         return;
     }
-    
+
     syscall_set_retval1(tf, 0);
     syscall_set_errno(tf, E_SUCC);
 }
@@ -515,8 +516,7 @@ void sys_open(tf_t *tf)
     size_t len = syscall_get_arg4(tf);
     if (len > 128)
     {
-        // TODO: Find the appropriate error number
-        syscall_set_errno(tf, -1);
+        syscall_set_errno(tf, E_INVAL_ARG);
         return;
     }
     char path[len + 1];

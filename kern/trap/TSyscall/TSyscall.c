@@ -6,11 +6,67 @@
 #include <lib/syscall.h>
 #include <dev/intr.h>
 #include <pcpu/PCPUIntro/export.h>
+#include <dev/console.h>
 
 #include "import.h"
 
 static char sys_buf[NUM_IDS][PAGESIZE];
 
+// Retval set to 0 is successful, -1 if failed
+// Content of readline returned by writing to buffer passsed through syscall arg
+void sys_readline(tf_t *tf)
+{
+    KERN_INFO("readline enter\n");
+    uintptr_t promptUser = syscall_get_arg2(tf);
+    size_t promptlen = syscall_get_arg3(tf);
+    uintptr_t resultUser = syscall_get_arg4(tf);
+    KERN_INFO("readline prompt=%p, len=%d, result=%p\n", promptUser, promptlen, resultUser);
+
+    // Error checking
+    if (promptlen > 128)
+    {
+        syscall_set_retval1(tf, E_INVAL_ARG);
+        syscall_set_errno(tf, -1);
+        return;
+    }
+
+    char prompt[promptlen + 1];
+
+    // Copy prompt into kernel memory
+    if (pt_copyin(get_curid(), promptUser, prompt, promptlen) != promptlen)
+    {
+        syscall_set_errno(tf, E_MEM);
+        syscall_set_retval1(tf, -1);
+        return;
+    };
+
+    prompt[promptlen] = '\0';
+
+    // readline ensure that the output is at most 1023 bytes (not including \0)
+    // and it ensures that the last character is always \0. our string counting loop
+    // does not account for the \0 character, which we nonetheless want to copy back
+    // to the user
+    char *result = readline(prompt);
+    // we count the # chars ourselves b/c no access to strlen
+    size_t i = 0; // i will count number of characters excl. \0
+    while (result[i] != '\0')
+    {
+        i++;
+    }
+    size_t resultlen = i + 1;
+
+    // Copy readline result back to user memory
+    // Even if the user output is empty, there should still be at least 1 character (\0)
+    if (pt_copyout(result, get_curid(), resultUser, resultlen) == 0)
+    {
+        // TODO: error number
+        syscall_set_errno(tf, E_MEM);
+        syscall_set_retval1(tf, -1);
+    }
+
+    syscall_set_errno(tf, E_SUCC);
+    syscall_set_retval1(tf, 0);
+}
 /**
  * Copies a string from user into buffer and prints it to the screen.
  * This is called by the user level "printf" library as a system call.
@@ -25,7 +81,8 @@ void sys_puts(tf_t *tf)
     str_uva = syscall_get_arg2(tf);
     str_len = syscall_get_arg3(tf);
 
-    if (!(VM_USERLO <= str_uva && str_uva + str_len <= VM_USERHI)) {
+    if (!(VM_USERLO <= str_uva && str_uva + str_len <= VM_USERHI))
+    {
         syscall_set_errno(tf, E_INVAL_ADDR);
         return;
     }
@@ -33,13 +90,15 @@ void sys_puts(tf_t *tf)
     remain = str_len;
     cur_pos = str_uva;
 
-    while (remain) {
+    while (remain)
+    {
         if (remain < PAGESIZE - 1)
             nbytes = remain;
         else
             nbytes = PAGESIZE - 1;
 
-        if (pt_copyin(cur_pid, cur_pos, sys_buf[cur_pid], nbytes) != nbytes) {
+        if (pt_copyin(cur_pid, cur_pos, sys_buf[cur_pid], nbytes) != nbytes)
+        {
             syscall_set_errno(tf, E_MEM);
             return;
         }
@@ -58,6 +117,7 @@ extern uint8_t _binary___obj_user_pingpong_ping_start[];
 extern uint8_t _binary___obj_user_pingpong_pong_start[];
 extern uint8_t _binary___obj_user_pingpong_ding_start[];
 extern uint8_t _binary___obj_user_fstest_fstest_start[];
+extern uint8_t _binary___obj_user_shell_shell_start[];
 
 /**
  * Spawns a new child process.
@@ -87,23 +147,27 @@ void sys_spawn(tf_t *tf)
     elf_id = syscall_get_arg2(tf);
     quota = syscall_get_arg3(tf);
 
-    if (!container_can_consume(curid, quota)) {
+    if (!container_can_consume(curid, quota))
+    {
         syscall_set_errno(tf, E_EXCEEDS_QUOTA);
         syscall_set_retval1(tf, NUM_IDS);
         return;
     }
-    else if (NUM_IDS < curid * MAX_CHILDREN + 1 + MAX_CHILDREN) {
+    else if (NUM_IDS < curid * MAX_CHILDREN + 1 + MAX_CHILDREN)
+    {
         syscall_set_errno(tf, E_MAX_NUM_CHILDEN_REACHED);
         syscall_set_retval1(tf, NUM_IDS);
         return;
     }
-    else if (container_get_nchildren(curid) == MAX_CHILDREN) {
+    else if (container_get_nchildren(curid) == MAX_CHILDREN)
+    {
         syscall_set_errno(tf, E_INVAL_CHILD_ID);
         syscall_set_retval1(tf, NUM_IDS);
         return;
     }
 
-    switch (elf_id) {
+    switch (elf_id)
+    {
     case 1:
         elf_addr = _binary___obj_user_pingpong_ping_start;
         break;
@@ -116,6 +180,9 @@ void sys_spawn(tf_t *tf)
     case 4:
         elf_addr = _binary___obj_user_fstest_fstest_start;
         break;
+    case 5:
+        elf_addr = _binary___obj_user_shell_shell_start;
+        break;
     default:
         syscall_set_errno(tf, E_INVAL_PID);
         syscall_set_retval1(tf, NUM_IDS);
@@ -124,10 +191,13 @@ void sys_spawn(tf_t *tf)
 
     new_pid = proc_create(elf_addr, quota);
 
-    if (new_pid == NUM_IDS) {
+    if (new_pid == NUM_IDS)
+    {
         syscall_set_errno(tf, E_INVAL_PID);
         syscall_set_retval1(tf, NUM_IDS);
-    } else {
+    }
+    else
+    {
         syscall_set_errno(tf, E_SUCC);
         syscall_set_retval1(tf, new_pid);
     }
@@ -144,3 +214,59 @@ void sys_yield(tf_t *tf)
     thread_yield();
     syscall_set_errno(tf, E_SUCC);
 }
+
+/*
+sys_cd
+- takes in the directory path to cd to
+- 
+
+
+USER SIDE
+function(path, relativePath) => resultingPath
+
+ls
+- resolve relative path
+- open path
+- read dirent entries
+
+pwd
+- print out user stored path
+
+cp
+- resolve src relative path
+- resolve dst relative path
+- open dst with create flag
+- open src
+- get file size of src from fstat
+- read from src and write to dst
+
+mv
+- resolve src relative path
+- resolve dst relative path
+- same procedure as cp
+- call sys_unlink on src
+
+rm
+- resolve relative path
+- call sys_unlink
+
+mkdir
+- resolve relative path
+- use system call to create folder
+
+cat
+- resolve relative path
+- open path
+- get file size from fstat
+- read from path until end of file
+
+touch
+- resolve relative path
+- open path with create flag
+- close fd
+
+
+sys_mkdir(path of folder to create)
+- namex lookup parent
+- add entry inside parent
+*/

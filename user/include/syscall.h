@@ -191,4 +191,25 @@ static gcc_inline int sys_chdir(char *path)
   return errno ? -1 : 0;
 }
 
+// For the purposes of Part 4, we are adding a syscall to give users access to readline
+// User prompt can be at most 128 characters long (excl. \0)
+// User should allocate a result buffer that is 1024 bytes long and pass in a reference to it
+// The result buffer is guaranteed to include a \0 at the end (although not all of the buffer may be used)
+static gcc_inline int sys_readline(char *prompt, char *result)
+{
+  int errno, ret;
+  size_t promptlen = strlen(prompt);
+
+  asm volatile("int %2"
+               : "=a"(errno), "=b"(ret)
+               : "i"(T_SYSCALL),
+                 "a"(SYS_readline),
+                 "b"(prompt),
+                 "c"(promptlen),
+                 "d"(result)
+               : "cc", "memory");
+
+  return errno ? -1 : 0;
+}
+
 #endif /* !_USER_SYSCALL_H_ */
