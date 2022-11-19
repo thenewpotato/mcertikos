@@ -40,6 +40,13 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="cbfb8871-235b-49b2-99b6-04385839d289" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/zoosync.sh" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/deployment.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/deployment.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/webServers.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/kern/thread/PTCBIntro/PTCBIntro.c" beforeDir="false" afterPath="$PROJECT_DIR$/kern/thread/PTCBIntro/PTCBIntro.c" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/user/idle/idle.c" beforeDir="false" afterPath="$PROJECT_DIR$/user/idle/idle.c" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/user/include/syscall.h" beforeDir="false" afterPath="$PROJECT_DIR$/user/include/syscall.h" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/user/shell/shell.c" beforeDir="false" afterPath="$PROJECT_DIR$/user/shell/shell.c" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -54,9 +61,6 @@
     <projectState path="$PROJECT_DIR$">
       <ProjectState />
     </projectState>
-  </component>
-  <component name="FormatOnSaveOptions">
-    <option name="myRunOnSave" value="true" />
   </component>
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
@@ -109,7 +113,7 @@
     "node.js.detected.package.eslint": "true",
     "node.js.selected.package.eslint": "(autodetect)",
     "nodejs_package_manager_path": "npm",
-    "settings.editor.selected.configurable": "reference.settings.deploy.options"
+    "settings.editor.selected.configurable": "actions.on.save"
   }
 }]]></component>
   <component name="RunManager" selected="Makefile Application.all">
@@ -276,7 +280,7 @@
       <workItem from="1668383423864" duration="206000" />
       <workItem from="1668456782765" duration="5000" />
       <workItem from="1668708563081" duration="295000" />
-      <workItem from="1668830731184" duration="680000" />
+      <workItem from="1668830731184" duration="7597000" />
     </task>
     <servers />
   </component>

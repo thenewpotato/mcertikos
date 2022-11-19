@@ -1,15 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
-  <component name="PublishConfigData" autoUpload="Always" promptOnRemoteOverwrite="CHECK_TIMESTAMP" serverName="zoo" autoUploadExternalChanges="true" notifyRemoteChanges="true">
-    <serverData>
-      <paths name="zoo">
-        <serverdata>
-          <mappings>
-            <mapping deploy="/home/accts/jw2723/cs422/mcertikos" local="$PROJECT_DIR$" web="/" />
-          </mappings>
-        </serverdata>
-      </paths>
-    </serverData>
+  <component name="PublishConfigData" autoUpload="Always" promptOnRemoteOverwrite="CHECK_TIMESTAMP" autoUploadExternalChanges="true" notifyRemoteChanges="true">
     <option name="myAutoUpload" value="ALWAYS" />
   </component>
 </project>

@@ -31,83 +31,69 @@ struct TCB {
 
 struct TCB TCBPool[NUM_IDS];
 
-unsigned int tcb_get_state(unsigned int pid)
-{
+unsigned int tcb_get_state(unsigned int pid) {
     return TCBPool[pid].state;
 }
 
-void tcb_set_state(unsigned int pid, unsigned int state)
-{
+void tcb_set_state(unsigned int pid, unsigned int state) {
     TCBPool[pid].state = state;
 }
 
-unsigned int tcb_get_cpu(unsigned int pid)
-{
+unsigned int tcb_get_cpu(unsigned int pid) {
     return TCBPool[pid].cpuid;
 }
 
-void tcb_set_cpu(unsigned int pid, unsigned int cpu)
-{
+void tcb_set_cpu(unsigned int pid, unsigned int cpu) {
     TCBPool[pid].cpuid = cpu;
 }
 
-unsigned int tcb_get_prev(unsigned int pid)
-{
+unsigned int tcb_get_prev(unsigned int pid) {
     return TCBPool[pid].prev;
 }
 
-void tcb_set_prev(unsigned int pid, unsigned int prev_pid)
-{
+void tcb_set_prev(unsigned int pid, unsigned int prev_pid) {
     TCBPool[pid].prev = prev_pid;
 }
 
-unsigned int tcb_get_next(unsigned int pid)
-{
+unsigned int tcb_get_next(unsigned int pid) {
     return TCBPool[pid].next;
 }
 
-void tcb_set_next(unsigned int pid, unsigned int next_pid)
-{
+void tcb_set_next(unsigned int pid, unsigned int next_pid) {
     TCBPool[pid].next = next_pid;
 }
 
-void tcb_init_at_id(unsigned int pid)
-{
+void tcb_init_at_id(unsigned int pid) {
     TCBPool[pid].state = TSTATE_DEAD;
     TCBPool[pid].cpuid = NUM_CPUS;
     TCBPool[pid].prev = NUM_IDS;
     TCBPool[pid].next = NUM_IDS;
     TCBPool[pid].channel = 0;
     memzero(TCBPool[pid].openfiles, sizeof *TCBPool[pid].openfiles);
+    // Notice that the starting directory for each process is by default "/". We keep this behavior in shell
     TCBPool[pid].cwd = namei("/");
 }
 
-void *tcb_get_chan(unsigned int pid)
-{
+void *tcb_get_chan(unsigned int pid) {
     return TCBPool[pid].channel;
 }
 
-void tcb_set_chan(unsigned int pid, void *chan)
-{
+void tcb_set_chan(unsigned int pid, void *chan) {
     TCBPool[pid].channel = chan;
 }
 
-struct file **tcb_get_openfiles(unsigned int pid)
-{
+struct file **tcb_get_openfiles(unsigned int pid) {
     return TCBPool[pid].openfiles;
 }
 
-void tcb_set_openfiles(unsigned int pid, int fd, struct file *f)
-{
+void tcb_set_openfiles(unsigned int pid, int fd, struct file *f) {
     TCBPool[pid].openfiles[fd] = f;
 }
 
-struct inode *tcb_get_cwd(unsigned int pid)
-{
+struct inode *tcb_get_cwd(unsigned int pid) {
     return TCBPool[pid].cwd;
 }
 
-void tcb_set_cwd(unsigned int pid, struct inode *d)
-{
+void tcb_set_cwd(unsigned int pid, struct inode *d) {
     TCBPool[pid].cwd = d;
 }

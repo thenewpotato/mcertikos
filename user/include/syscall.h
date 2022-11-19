@@ -176,6 +176,8 @@ static gcc_inline int sys_mkdir(char *path)
   return errno ? -1 : 0;
 }
 
+// path is at most 128 bytes (excluding null char)
+// returns 0 on success, -1 on failure
 static gcc_inline int sys_chdir(char *path)
 {
   int errno, ret;
