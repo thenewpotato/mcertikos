@@ -1,5 +1,4 @@
 *.img
-.idea/
 log
 *.log
 cscope.*

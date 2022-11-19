@@ -4,6 +4,7 @@
 #include <x86.h>
 #include <file.h>
 #include <gcc.h>
+
 #define exit(...) return __VA_ARGS__
 
 /*
@@ -11,8 +12,7 @@
 "cp" or "     cp" => name=cp, all other fields NULL
 "cp blah"
 */
-int parse(char *line, char **args)
-{
+int parse(char *line, char **args) {
     /*
     normalarg(start)
     quotearg(start)
@@ -27,7 +27,7 @@ int parse(char *line, char **args)
 
         size_t argstart = linei;
         if (line[argstart] == '"') {
-            while(line[linei] != '"') {
+            while (line[linei] != '"') {
                 linei++;
             }
         }
@@ -40,29 +40,28 @@ int parse(char *line, char **args)
             printf("line");
             linei++;
         }
-        
+
         size_t argend = linei;
         size_t arglen = argend - argstart;
         printf("parse %d %d\n", argstart, argend);
-        for(int j = argstart;  j < arglen; j++){
+        for (int j = argstart; j < arglen; j++) {
             printf("%c", line[j]);
-        }          
+        }
         // printf("\n");
         if (arglen == 0 || arglen > 128) {
             return -1;
-        }
-        else{
+        } else {
             strncpy(args[argi], &line[argstart], arglen);
             args[argi][arglen] = '\0';
         }
-        
+
         argi++;
         linei++;
     }
     return argi + 1;
 }
 
-int ls(char* path) {
+int ls(char *path) {
     return 0;
 }
 
@@ -70,8 +69,7 @@ int pwd() {
     return 0;
 }
 
-int main(int argc, char *argv[])
-{
+int main(int argc, char *argv[]) {
     // int fd = open("/", O_RDONLY);
     // printf("fd %d\n", fd);
     // struct file_stat st;
@@ -83,8 +81,7 @@ int main(int argc, char *argv[])
     // return 0;
     char buffer[1024];
 
-    while (sys_readline("$ ", buffer) == 0)
-    {
+    while (sys_readline("$ ", buffer) == 0) {
         char args[6][129];
         int nargs = parse("hello world", args);
         // for(unsigned int i = 0; i < nargs; i++){
@@ -100,47 +97,24 @@ int main(int argc, char *argv[])
         echo "some content" > file => [echo, some content],
         echo "some content" >> file
         */
-        if (strcmp(buffer, "ls") == 0)
-        {
-        }
-        else if (strcmp(buffer, "pwd") == 0)
-        {
-        }
-        else if (strcmp(buffer, "cd") == 0)
-        {
-        }
-        else if (strcmp(buffer, "cp") == 0)
-        {
-        }
-        else if (strcmp(buffer, "mv") == 0)
-        {
-        }
-        else if (strcmp(buffer, "rm") == 0)
-        {
-        }
-        else if (strcmp(buffer, "mkdir") == 0)
-        {
-        }
-        else if (strcmp(buffer, "cat") == 0)
-        {
-        }
-        else if (strcmp(buffer, "touch") == 0)
-        {
-        }
-        else if (strcmp(buffer, "redirect") == 0)
-        {
+        if (strcmp(buffer, "ls") == 0) {
+        } else if (strcmp(buffer, "pwd") == 0) {
+        } else if (strcmp(buffer, "cd") == 0) {
+        } else if (strcmp(buffer, "cp") == 0) {
+        } else if (strcmp(buffer, "mv") == 0) {
+        } else if (strcmp(buffer, "rm") == 0) {
+        } else if (strcmp(buffer, "mkdir") == 0) {
+        } else if (strcmp(buffer, "cat") == 0) {
+        } else if (strcmp(buffer, "touch") == 0) {
+        } else if (strcmp(buffer, "redirect") == 0) {
         }
 
-        // File redirect
-        else if (strcmp(buffer, "") == 0)
-        {
+            // File redirect
+        else if (strcmp(buffer, "") == 0) {
         }
-        // File reidrect append
-        else if (strcmp(buffer, "") == 0)
-        {
-        }
-        else
-        {
+            // File reidrect append
+        else if (strcmp(buffer, "") == 0) {
+        } else {
             printf("Invalid Shell Command\n");
         }
     }
