@@ -214,4 +214,15 @@ static gcc_inline int sys_readline(char *prompt, char *result)
   return errno ? -1 : 0;
 }
 
+static gcc_inline int sys_getcwd(char *buffer) {
+    int errno, ret;
+    asm volatile("int %2"
+            : "=a"(errno), "=b"(ret)
+            : "i"(T_SYSCALL),
+              "a"(SYS_getcwd),
+              "b"(buffer)
+            : "cc", "memory");
+    return errno ? -1 : ret;
+}
+
 #endif /* !_USER_SYSCALL_H_ */

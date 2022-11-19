@@ -73,7 +73,7 @@ void sys_read(tf_t *tf)
 {
     int fd = syscall_get_arg2(tf);
     uintptr_t buf = syscall_get_arg3(tf);
-    size_t nbytes = syscall_get_arg4(tf);
+    int nbytes = syscall_get_arg4(tf);
     // KERN_INFO("sys_read fd=%d buf=%p nbytes=%d\n", fd, buf, nbytes);
 
     // Error checking
@@ -127,7 +127,7 @@ void sys_read(tf_t *tf)
         syscall_set_errno(tf, E_SUCC);
         return;
     }
-    int bytesCopiedToUser;
+    size_t bytesCopiedToUser;
     if ((bytesCopiedToUser = pt_copyout(kernel_buffer, cur_pid, buf, bytesReadFromFile)) == 0)
     {
         KERN_INFO("sys_read: pt_copyout failed %d %d %d\n", bytesCopiedToUser, bytesReadFromFile, nbytes);
@@ -629,7 +629,6 @@ void sys_mkdir(tf_t *tf)
 
 void sys_chdir(tf_t *tf)
 {
-
     size_t len = syscall_get_arg3(tf);
     if (len > 128)
     {
@@ -639,7 +638,7 @@ void sys_chdir(tf_t *tf)
     }
     char path[len + 1];
     struct inode *ip;
-    int pid = get_curid();
+    unsigned int pid = get_curid();
 
     if (pt_copyin(get_curid(), syscall_get_arg2(tf), path, len) != len)
     {
@@ -667,4 +666,95 @@ void sys_chdir(tf_t *tf)
     tcb_set_cwd(pid, ip);
     syscall_set_errno(tf, E_SUCC);
     tcb_set_cwd(pid, ip);
+}
+
+#define MAX_CWD_LEN 300
+void sys_getcwd(tf_t *tf) {
+    uintptr_t userBuffer = syscall_get_arg2(tf);    // User buffer must be at least MAX_CWD_LEN bytes
+    unsigned int pid = get_curid();
+
+    KERN_INFO("sys_getcwd enter\n");
+
+    char reversedPath[MAX_CWD_LEN];
+    reversedPath[0] = '\0';
+    size_t reversedPath_i = 1;  // next available index (i.e. length)
+
+    KERN_INFO("sys_getcwd: allocated\n");
+
+    struct inode * leaf = tcb_get_cwd(pid); // leaf must be a directory
+    KERN_INFO("sys_getcwd: leaf=%p inum=%d\n", leaf, leaf->inum);
+    while (leaf->inum != ROOTINO) {
+        KERN_INFO("sys_getcwd: looking at leaf=%d\n", leaf->inum);
+        struct inode *parent = dir_lookup(leaf, "..", NULL);
+        for (unsigned int offset = 0; offset < parent->size; offset += sizeof(struct dirent)) {
+            struct dirent sub_dir;
+            inode_read(parent, (char *) (&sub_dir), offset, sizeof(struct dirent));
+            if (sub_dir.inum == leaf->inum) {
+                char * subdirName = sub_dir.name;   // Found name of leaf directory
+                int lastChar_i = DIRSIZ - 1; // index of last char in subdirName (char before null term)
+                for (int i = 0; i < DIRSIZ; i++) {
+                    if (subdirName[i] == '\0') {
+                        lastChar_i = i - 1;
+                        break;
+                    }
+                }
+
+                // slash at the end of each directory name
+                if (reversedPath_i >= MAX_CWD_LEN) {
+                    // Path length is greater than MAX_CWD_LEN
+                    syscall_set_errno(tf, -1);
+                    syscall_set_retval1(tf, -1);
+                    return;
+                }
+                reversedPath[reversedPath_i++] = '/';
+
+                for (int i = lastChar_i; i >= 0; i--) {
+                    if (reversedPath_i >= MAX_CWD_LEN) {
+                        // Path length is greater than MAX_CWD_LEN
+                        syscall_set_errno(tf, -1);
+                        syscall_set_retval1(tf, -1);
+                        return;
+                    }
+                    reversedPath[reversedPath_i++] = subdirName[i];
+                }
+                break;
+            }
+        }
+        leaf = parent;
+    }
+
+    // top-level root slash
+    if (reversedPath_i >= MAX_CWD_LEN) {
+        // Path length is greater than MAX_CWD_LEN
+        syscall_set_errno(tf, -1);
+        syscall_set_retval1(tf, -1);
+        return;
+    }
+    reversedPath[reversedPath_i++] = '/';
+    KERN_INFO("sys_getcwd: final reversedPath_i=%d\n", reversedPath_i);
+
+    // reverse path
+    for (int i = 0; i < reversedPath_i / 2; i++) {
+        /*
+         * 12345678
+         * 82345671
+         * 87235621, etc
+         * 12345
+         * 52341
+         * 54321 (no need to swap middle elem)
+         */
+        char tmp = reversedPath[i];
+        reversedPath[i] = reversedPath[reversedPath_i - i - 1];
+        reversedPath[reversedPath_i - i - 1] = tmp;
+    }
+
+    if (pt_copyout(reversedPath, pid, userBuffer, reversedPath_i) != reversedPath_i) {
+        syscall_set_errno(tf, -1);
+        syscall_set_retval1(tf, -1);
+        return;
+    }
+
+    KERN_INFO("sys_getcwd: success\n");
+    syscall_set_retval1(tf, reversedPath_i);
+    syscall_set_errno(tf, E_SUCC);
 }

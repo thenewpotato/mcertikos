@@ -13,11 +13,6 @@
 "cp blah"
 */
 int parseOld(char *line, char **args) {
-    /*
-    normalarg(start)
-    quotearg(start)
-    none
-    */
     int argi = 0;
     size_t linei = 0;
     while (line[linei] != '\0') {
@@ -67,6 +62,7 @@ struct dirent {
     uint16_t inum;
     char name[DIRSIZ];
 };
+
 void shell_ls(char *relativePath) {
     int dirfd;
     size_t nDirents;
@@ -101,6 +97,7 @@ void shell_mkdir(char *name) {
 void shell_cd(char *relativePath) {
     if (chdir(relativePath) != 0) {
         printf("cd: no such file or directory: %s\n", relativePath);
+        return;
     }
 }
 
@@ -192,10 +189,11 @@ void shell_pwd() {
 
 typedef struct {
     int found;
-    const char * start;
-    const char * nextStart;
+    const char *start;
+    const char *nextStart;
     size_t len;
 } argument;
+
 argument findNextArg(const char *command) {
     printf("find %s\n", command);
     argument r;
@@ -265,14 +263,36 @@ void test_backend() {
     shell_ls("..");
 }
 
+void test_cwd() {
+    shell_mkdir("folder1");
+    shell_cd("folder1");
+    shell_mkdir("folder2");
+    shell_cd("folder2");
+    char buffer[300];
+    int pathLen = getcwd(buffer);
+    if (pathLen <= 0) {
+        printf("cwd failed\n");
+    }
+    printf("user side cwd succeeded, path=%s\n", buffer);
+}
+
 #define CMD_NAME_CMP(parsed_name, target_name)  strncmp(parsed_name.start, target_name, MAX(parsed_name.len, strlen(target_name)))
 #define COPY_ARG(arg, buffer) { \
     strncpy(buffer, arg.start, arg.len); \
     buffer[arg.len] = '\0'; \
 }
+#define CHECK_ARG(arg, message) { \
+    if (!arg.found) {             \
+        printf("%s\n", message);  \
+        continue;                 \
+    } \
+}
 
 int main(int argc, char *argv[]) {
+//    test_cwd();
+
     char command[1024];
+
     while (sys_readline("$ ", command) == 0) {
         argument name = findNextArg(command);
         if (!name.found) {
@@ -281,87 +301,26 @@ int main(int argc, char *argv[]) {
         printf("received command: %s (%d)\n", name.start, name.len);
         if (CMD_NAME_CMP(name, "ls") == 0) {
             argument arg1 = findNextArg(name.nextStart);
-            if (!arg1.found) {
-                printf("ls usage...\n");
-                continue;
-            }
+            CHECK_ARG(arg1, "ls usage...");
             char arg1_copy[arg1.len + 1];
             COPY_ARG(arg1, arg1_copy);
 
             shell_ls(arg1_copy);
         } else if (CMD_NAME_CMP(name, "cd") == 0) {
             argument arg1 = findNextArg(name.nextStart);
-            if (!arg1.found) {
-                printf("cd usage...\n");
-                continue;
-            }
+            CHECK_ARG(arg1, "cd usage...");
             char arg1_copy[arg1.len + 1];
             COPY_ARG(arg1, arg1_copy);
 
             shell_cd(arg1_copy);
         } else if (CMD_NAME_CMP(name, "mkdir") == 0) {
             argument arg1 = findNextArg(name.nextStart);
-            if (!arg1.found) {
-                printf("mkdir usage...\n");
-                continue;
-            }
+            CHECK_ARG(arg1, "mkdir usage...");
             char arg1_copy[arg1.len + 1];
             COPY_ARG(arg1, arg1_copy);
 
             shell_mkdir(arg1_copy);
         }
     }
-
     return 0;
-//    // int fd = open("/", O_RDONLY);
-//    // printf("fd %d\n", fd);
-//    // struct file_stat st;
-//    // if (fstat(fd, &st) != 0)
-//    // {
-//    //     printf("error: file_stat failed\n");
-//    // }
-//    // printf("file_stat: type=%d, dev=%d, ino=%d, nlink=%d, size=%d\n", st.type, st.dev, st.ino, st.nlink, st.size);
-//    // return 0;
-//    char buffer[1024];
-//
-//    while (sys_readline("$ ", buffer) == 0) {
-//        char args[6][129];
-//        int nargs = parse("hello world", args);
-//        // for(unsigned int i = 0; i < nargs; i++){
-//        //     printf("%s", args[i]);
-//        // }
-//        return 0;
-//        /*
-//        ls
-//        cat hello.txt
-//        cp src dest
-//        cp -r src dest => [cp, -r, src, dest]
-//
-//        echo "some content" > file => [echo, some content],
-//        echo "some content" >> file
-//        */
-//        if (strcmp(buffer, "ls") == 0) {
-//        } else if (strcmp(buffer, "pwd") == 0) {
-//        } else if (strcmp(buffer, "cd") == 0) {
-//        } else if (strcmp(buffer, "cp") == 0) {
-//        } else if (strcmp(buffer, "mv") == 0) {
-//        } else if (strcmp(buffer, "rm") == 0) {
-//        } else if (strcmp(buffer, "mkdir") == 0) {
-//        } else if (strcmp(buffer, "cat") == 0) {
-//        } else if (strcmp(buffer, "touch") == 0) {
-//        } else if (strcmp(buffer, "redirect") == 0) {
-//        }
-//
-//            // File redirect
-//        else if (strcmp(buffer, "") == 0) {
-//        }
-//            // File reidrect append
-//        else if (strcmp(buffer, "") == 0) {
-//        } else {
-//            printf("Invalid Shell Command\n");
-//        }
-//    }
-//
-//    printf("readline failed\n");
-//    return 1;
 }
