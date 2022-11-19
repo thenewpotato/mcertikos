@@ -12,7 +12,7 @@
 "cp" or "     cp" => name=cp, all other fields NULL
 "cp blah"
 */
-int parse(char *line, char **args) {
+int parseOld(char *line, char **args) {
     /*
     normalarg(start)
     quotearg(start)
@@ -131,7 +131,7 @@ void shell_cat(char *relativePath) {
 }
 
 void shell_mv(char *src, char *dst) {
-    // NOTE: current mv syntax is NOT regular shell syntax, second arg must be file path
+    // NOTE: current mv syntax is NOT regular shell syntax, second argument must be file path
     int linkStatus = link(src, dst);
     int unlinkStatus = unlink(src);
     if (linkStatus != 0 || unlinkStatus != 0) {
@@ -190,7 +190,59 @@ void shell_pwd() {
     printf("not implemented yet\n");
 }
 
-int main(int argc, char *argv[]) {
+typedef struct {
+    int found;
+    const char * start;
+    const char * nextStart;
+    size_t len;
+} argument;
+argument findNextArg(const char *command) {
+    printf("find %s\n", command);
+    argument r;
+    size_t cur = 0;
+    char endChar = ' ';
+    while (command[cur] == ' ') {
+        cur++;
+    }
+    if (command[cur] == '"') {
+        cur++;
+        endChar = '"';
+    } else if (command[cur] == '\0') {
+        // no argument found
+        r.found = 0;
+        return r;
+    }
+    size_t start_index = cur;
+    r.start = &command[cur];
+    while ((command[cur] != endChar) && (command[cur] != '\0')) {
+        cur++;
+    }
+    r.len = cur - start_index;
+    r.found = 1;
+    // at this point command[cur] points at the delim char, either space or quote
+    if (command[cur] != '\0') {
+        cur++;
+    }
+    r.nextStart = &command[cur];
+    return r;
+}
+
+void test_findNextArg() {
+    argument r = findNextArg("hello world > \"blah blah\" haha");
+    printf("found=%d, start=%s, len=%d\n", r.found, r.start, r.len);
+    argument r2 = findNextArg(r.nextStart);
+    printf("found=%d, start=%s, len=%d\n", r2.found, r2.start, r2.len);
+    argument r3 = findNextArg(r2.nextStart);
+    printf("found=%d, start=%s, len=%d\n", r3.found, r3.start, r3.len);
+    argument r4 = findNextArg(r3.nextStart);
+    printf("found=%d, start=%s, len=%d\n", r4.found, r4.start, r4.len);
+    argument r5 = findNextArg(r4.nextStart);
+    printf("found=%d, start=%s, len=%d\n", r5.found, r5.start, r5.len);
+    argument r6 = findNextArg(r5.nextStart);
+    printf("found=%d", r6.found);
+}
+
+void test_backend() {
     shell_mkdir("blah/blah");
     shell_mkdir("testDir");
     shell_cd("testDir");
@@ -211,6 +263,55 @@ int main(int argc, char *argv[]) {
     shell_ls(".");
     shell_rm("test.txt");
     shell_ls("..");
+}
+
+#define CMD_NAME_CMP(parsed_name, target_name)  strncmp(parsed_name.start, target_name, MAX(parsed_name.len, strlen(target_name)))
+#define COPY_ARG(arg, buffer) { \
+    strncpy(buffer, arg.start, arg.len); \
+    buffer[arg.len] = '\0'; \
+}
+
+int main(int argc, char *argv[]) {
+    char command[1024];
+    while (sys_readline("$ ", command) == 0) {
+        argument name = findNextArg(command);
+        if (!name.found) {
+            continue;
+        }
+        printf("received command: %s (%d)\n", name.start, name.len);
+        if (CMD_NAME_CMP(name, "ls") == 0) {
+            argument arg1 = findNextArg(name.nextStart);
+            if (!arg1.found) {
+                printf("ls usage...\n");
+                continue;
+            }
+            char arg1_copy[arg1.len + 1];
+            COPY_ARG(arg1, arg1_copy);
+
+            shell_ls(arg1_copy);
+        } else if (CMD_NAME_CMP(name, "cd") == 0) {
+            argument arg1 = findNextArg(name.nextStart);
+            if (!arg1.found) {
+                printf("cd usage...\n");
+                continue;
+            }
+            char arg1_copy[arg1.len + 1];
+            COPY_ARG(arg1, arg1_copy);
+
+            shell_cd(arg1_copy);
+        } else if (CMD_NAME_CMP(name, "mkdir") == 0) {
+            argument arg1 = findNextArg(name.nextStart);
+            if (!arg1.found) {
+                printf("mkdir usage...\n");
+                continue;
+            }
+            char arg1_copy[arg1.len + 1];
+            COPY_ARG(arg1, arg1_copy);
+
+            shell_mkdir(arg1_copy);
+        }
+    }
+
     return 0;
 //    // int fd = open("/", O_RDONLY);
 //    // printf("fd %d\n", fd);
