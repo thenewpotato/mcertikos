@@ -6,6 +6,10 @@
 #include <gcc.h>
 
 #define exit(...) return __VA_ARGS__
+#define T_DIR  1  // Directory
+#define T_FILE 2  // File
+#define T_DEV  3  // Device
+#define IO_CHUNK_SIZE 512   // Reading and writing in chunks of 512 bytes
 
 /*
 "" or "    " => all fields NULL
@@ -119,6 +123,11 @@ void shell_cat(char *relativePath) {
         return;
     }
     fstat(fd, &stat);
+    if(stat.type != T_FILE){
+        printf("cat: %s: is a directory\n", relativePath);
+    }
+
+
     char content[stat.size + 1];
     printf("cat size %d\n", stat.size);
     read(fd, content, stat.size);
@@ -136,10 +145,128 @@ void shell_mv(char *src, char *dst) {
     }
 }
 
+/*
+ * If relativePath specifies a file, unlink the file
+ * If relativePath specifies a directory, recursively unlink its contents and the directory
+ * Returns 0 on success, -1 on failure
+ */
+int remove(char *relativePath) {
+    int fd_root = open(relativePath, O_RDONLY);
+
+    ASSERT(fd_root >= 0);
+
+    struct file_stat fstat_root;
+    int fstat_status = fstat(fd_root, &fstat_root);
+
+    ASSERT(fstat_status == 0);
+    ASSERT(fstat_root.type == T_DIR || fstat_root.type == T_FILE);
+
+    if (fstat_root.type == T_FILE) {
+        close(fd_root);
+        int unlinkStatus = unlink(relativePath);
+
+        ASSERT(unlinkStatus == 0);
+        printf("remove: removed file %s\n", relativePath);
+    } else {
+        int chdir_status = chdir(relativePath);
+        printf("remove: removing dir %s\n", relativePath);
+
+        ASSERT(chdir_status == 0);
+        ASSERT(fstat_root.size % sizeof(struct dirent) == 0);
+
+        size_t nDirents = fstat_root.size / sizeof(struct dirent);
+        for (size_t i = 0; i < nDirents; i++) {
+            struct dirent cur_dirent;
+
+            int read_status = read(fd_root, (char *) &cur_dirent, sizeof(struct dirent));
+            ASSERT(read_status > 0);
+            if (cur_dirent.inum == 0)   // inum 0 indicates empty entry
+                break;
+            if (strcmp(cur_dirent.name, ".") == 0 || strcmp(cur_dirent.name, "..") == 0)
+                continue;
+            printf("remove: recursively removing %s\n", cur_dirent.name);
+            int recursive_remove_status = remove(cur_dirent.name);
+            ASSERT(recursive_remove_status == 0);
+        }
+
+        chdir_status = chdir("..");
+
+        ASSERT(chdir_status == 0);
+
+        close(fd_root);
+        int unlinkStatus = unlink(relativePath);
+
+        ASSERT(unlinkStatus == 0);
+        printf("remove: removed dir %s\n", relativePath);
+    }
+    return 0;
+}
+
 void shell_rm(char *relativePath) {
-    int unlinkStatus = unlink(relativePath);
-    if (unlinkStatus != 0) {
+    int fd = open(relativePath, O_RDONLY);
+    if (fd < 0) {
         printf("rm: no such file or directory: %s\n", relativePath);
+        return;
+    }
+    struct file_stat stat;
+    int fstat_status = fstat(fd, &stat);
+    if (fstat_status != 0) {
+        printf("rm: no such file or directory: %s\n", relativePath);
+        return;
+    }
+    if (stat.type != T_FILE) {
+        printf("rm: not a file: %s\n", relativePath);
+        return;
+    }
+    int close_status = close(fd);
+    ASSERT(close_status == 0);
+    int remove_status = remove(relativePath);
+    ASSERT(remove_status == 0);
+}
+
+void shell_rm_r(char *relativePath) {
+    int fd = open(relativePath, O_RDONLY);
+    if (fd < 0) {
+        printf("rm: no such file or directory: %s\n", relativePath);
+        return;
+    }
+    struct file_stat stat;
+    int fstat_status = fstat(fd, &stat);
+    if (fstat_status != 0) {
+        printf("rm: no such file or directory: %s\n", relativePath);
+        return;
+    }
+    if (stat.type != T_DIR) {
+        printf("rm: not a directory: %s\n", relativePath);
+        return;
+    }
+    int close_status = close(fd);
+    ASSERT(close_status == 0);
+    int remove_status = remove(relativePath);
+    ASSERT(remove_status == 0);
+}
+
+/*
+ *
+ */
+int copy(char *srcPath, char *destPath) {
+    int fd_src = open(srcPath, O_RDONLY);
+    int fd_dest = open(destPath, O_RDONLY);
+    ASSERT(fd_src >= 0);
+    ASSERT(fd_dest < 0);
+    struct file_stat fstat_src;
+    ASSERT(fstat(fd_src, &fstat_src) == 0);
+    ASSERT(fstat_src.type == T_FILE || fstat_src.type == T_DIR);
+    if (fstat_src.type == T_FILE) {
+        ASSERT(close(fd_dest) == 0);
+        fd_dest = open(destPath, O_RDWR | O_CREATE);
+        ASSERT(fd_dest >= 0);
+        char buffer[IO_CHUNK_SIZE];
+        while (read(fd_src, buffer, IO_CHUNK_SIZE) > 0) {
+            ASSERT(write(fd_dest, buffer, IO_CHUNK_SIZE) > 0);
+        }
+    } else {
+
     }
 }
 
@@ -166,25 +293,46 @@ void shell_cp(char *src, char *dst) {
     close(fdDest);
 }
 
-void shell_echo(char *text, char *relativePath, int overwrite) {
-    if (overwrite) {
-        int fd = open(relativePath, O_RDWR);
-        if (fd < 0) {
-            printf("echo: no such file: %s\n", relativePath);
-            return;
-        }
-        int writeStatus = write(fd, text, strlen(text));
-        if (writeStatus < 0) {
-            printf("echo: write failed\n");
-        }
-        close(fd);
-    } else {    // append mode
-        printf("not implemented yet\n");
+void shell_echo(char *text, char *relativePath) {
+    int fd = open(relativePath, O_RDWR | O_CREATE);
+    if (fd < 0) {
+        printf("echo: no such file: %s\n", relativePath);
+        return;
     }
+    int writeStatus = write(fd, text, strlen(text));
+    if (writeStatus < 0) {
+        printf("echo: write failed\n");
+    }
+    close(fd);
+}
+
+void shell_echo_append(char *text, char *relativePath) {
+    int fd = open(relativePath, O_RDWR | O_CREATE);
+    if (fd < 0) {
+        printf("echo: no such file: %s\n", relativePath);
+        return;
+    }
+    char unused_buffer[IO_CHUNK_SIZE];
+    while (read(fd, unused_buffer, IO_CHUNK_SIZE) > 0) {}
+    int writeStatus = write(fd, text, strlen(text));
+    if (writeStatus < 0) {
+        printf("echo: write failed\n");
+    }
+    close(fd);
 }
 
 void shell_pwd() {
-    printf("not implemented yet\n");
+//    printf("not implemented yet\n");
+    if(getcwd() == -1){
+        printf("pwd failed\n");
+    }
+//    return;
+//    char buffer[300];
+//    int pathLen = getcwd(buffer);
+//    if (pathLen <= 0) {
+//        printf("cwd failed\n");
+//    }
+
 }
 
 typedef struct {
@@ -247,11 +395,11 @@ void test_backend() {
     shell_mkdir("nested");
     shell_touch("test.txt");
     shell_touch("test2.txt");
-    shell_echo("hello world!\n", "test2.txt", 1);
+    shell_echo("hello world!\n", "test2.txt");
     shell_cat("test2.txt");
     shell_cp("test2.txt", "test3.txt");
     shell_cat("test3.txt");
-    shell_echo("goodbye world!\n", "test2.txt", 1);
+    shell_echo("goodbye world!\n", "test2.txt");
     shell_cat("test2.txt");
     shell_cat("test3.txt");
     shell_ls(".");
@@ -264,29 +412,35 @@ void test_backend() {
 }
 
 void test_cwd() {
+    char buffer[300];
+    int pathLen = getcwd();
+    if (pathLen <= 0) {
+        printf("cwd failed\n");
+    }
+    printf("user side cwd succeeded, path=%s\n", buffer);
     shell_mkdir("folder1");
     shell_cd("folder1");
     shell_mkdir("folder2");
     shell_cd("folder2");
-    char buffer[300];
-    int pathLen = getcwd(buffer);
+    pathLen = getcwd();
     if (pathLen <= 0) {
         printf("cwd failed\n");
     }
     printf("user side cwd succeeded, path=%s\n", buffer);
 }
 
-#define CMD_NAME_CMP(parsed_name, target_name)  strncmp(parsed_name.start, target_name, MAX(parsed_name.len, strlen(target_name)))
+#define ARG_CMP(parsed_name, target_name)  strncmp((parsed_name).start, target_name, MAX((parsed_name).len, strlen(target_name)))
 #define COPY_ARG(arg, buffer) { \
-    strncpy(buffer, arg.start, arg.len); \
-    buffer[arg.len] = '\0'; \
+    strncpy(buffer, (arg).start, (arg).len); \
+    (buffer)[(arg).len] = '\0'; \
 }
 #define CHECK_ARG(arg, message) { \
-    if (!arg.found) {             \
+    if (!(arg).found) {             \
         printf("%s\n", message);  \
         continue;                 \
     } \
 }
+
 
 int main(int argc, char *argv[]) {
 //    test_cwd();
@@ -299,28 +453,170 @@ int main(int argc, char *argv[]) {
             continue;
         }
         printf("received command: %s (%d)\n", name.start, name.len);
-        if (CMD_NAME_CMP(name, "ls") == 0) {
+        if (ARG_CMP(name, "ls") == 0) {
             argument arg1 = findNextArg(name.nextStart);
             CHECK_ARG(arg1, "ls usage...");
             char arg1_copy[arg1.len + 1];
             COPY_ARG(arg1, arg1_copy);
-
             shell_ls(arg1_copy);
-        } else if (CMD_NAME_CMP(name, "cd") == 0) {
+
+
+            argument check = findNextArg(arg1.nextStart);
+            if(check.found){
+                printf("cp usage ...\n");
+                continue;
+            }
+        } else if (ARG_CMP(name, "pwd") == 0) {
+            shell_pwd();
+
+            argument check = findNextArg(name.nextStart);
+            if(check.found){
+                printf("cp usage ...\n");
+                continue;
+            }
+        } else if (ARG_CMP(name, "cd") == 0) {
             argument arg1 = findNextArg(name.nextStart);
             CHECK_ARG(arg1, "cd usage...");
             char arg1_copy[arg1.len + 1];
             COPY_ARG(arg1, arg1_copy);
-
             shell_cd(arg1_copy);
-        } else if (CMD_NAME_CMP(name, "mkdir") == 0) {
+
+            argument check = findNextArg(arg1.nextStart);
+            if(check.found){
+                printf("cp usage ...\n");
+                continue;
+            }
+        }else if (ARG_CMP(name, "cp") == 0) {
+            argument arg1 = findNextArg(name.nextStart);
+            CHECK_ARG(arg1, "cp usage...");
+            // Recursive cp
+            if (ARG_CMP(arg1, "-r") == 0) {
+                // Get the source
+                argument source = findNextArg(arg1.nextStart);
+                CHECK_ARG(source, "cp usage...");
+                char source_copy[source.len + 1];
+                COPY_ARG(source, source_copy);
+
+                // Get the destination
+                argument dest = findNextArg(source.nextStart);
+                CHECK_ARG(dest, "cp usage...");
+                char dest_copy[dest.len + 1];
+                COPY_ARG(dest, dest_copy);
+
+                // TODO: shell_cp -r
+
+
+                argument check = findNextArg(dest.nextStart);
+                if(check.found){
+                    printf("cp usage ...\n");
+                    continue;
+                }
+
+            } else {
+                char source_copy[arg1.len + 1];
+                COPY_ARG(arg1, source_copy);
+
+                argument dest = findNextArg(arg1.nextStart);
+                CHECK_ARG(dest, "cp usage...");
+                char dest_copy[dest.len + 1];
+                COPY_ARG(dest, dest_copy);
+                shell_cp(source_copy, dest_copy);
+                argument check = findNextArg(dest.nextStart);
+                if(check.found){
+                    printf("cp usage ...\n");
+                    continue;
+                }
+            }
+
+        }
+        else if(ARG_CMP(name, "mv") == 0){
+            argument source = findNextArg(name.nextStart);
+            CHECK_ARG(source, "mv usage ...");
+            char source_copy[source.len + 1];
+            COPY_ARG(source, source_copy);
+
+            argument dest = findNextArg(source.nextStart);
+            CHECK_ARG(dest, "mv usage ...");
+            char dest_copy[dest.len + 1];
+            COPY_ARG(dest, dest_copy);
+            shell_mv(source_copy, dest_copy);
+
+
+            argument check = findNextArg(dest.nextStart);
+            if(check.found){
+                printf("mv usage ...\n");
+                continue;
+            }
+        }
+        else if (ARG_CMP(name, "rm") == 0) {
+            argument arg1 = findNextArg(name.nextStart);
+            if (ARG_CMP(arg1, "-r") == 0) {
+                argument arg2 = findNextArg(arg1.nextStart);
+                char arg2_copy[arg2.len + 1];
+                COPY_ARG(arg2, arg2_copy);
+                shell_rm_r(arg2_copy);
+                argument check = findNextArg(arg2.nextStart);
+                if(check.found){
+                    printf("rm usage ...\n");
+                    continue;
+                }
+            } else {
+                char arg1_copy[arg1.len + 1];
+                COPY_ARG(arg1, arg1_copy);
+                shell_rm(arg1_copy);
+                argument check = findNextArg(arg1.nextStart);
+                if(check.found){
+                    printf("cat usage ...\n");
+                    continue;
+                }
+            }
+        }
+        else if (ARG_CMP(name, "mkdir") == 0) {
             argument arg1 = findNextArg(name.nextStart);
             CHECK_ARG(arg1, "mkdir usage...");
             char arg1_copy[arg1.len + 1];
             COPY_ARG(arg1, arg1_copy);
 
             shell_mkdir(arg1_copy);
+            argument check = findNextArg(arg1.nextStart);
+            if(check.found){
+                printf("mkdir usage ...\n");
+                continue;
+            }
         }
+        else if(ARG_CMP(name, "cat") == 0){
+            argument file = findNextArg(name.nextStart);
+            CHECK_ARG(file, "cat usage ...")
+            char file_copy[file.len + 1];
+            COPY_ARG(file, file_copy);
+            shell_cat(file_copy);
+
+            argument check = findNextArg(file.nextStart);
+            if(check.found){
+                printf("cat usage ...\n");
+                continue;
+            }
+        }
+        else if (ARG_CMP(name, "echo") == 0) {
+            argument text = findNextArg(name.nextStart);
+            char text_copy[text.len + 1];
+            COPY_ARG(text, text_copy);
+            argument arg2 = findNextArg(text.nextStart);
+            argument fileName = findNextArg(arg2.nextStart);
+            char fileName_copy[fileName.len + 1];
+            COPY_ARG(fileName, fileName_copy);
+            if (ARG_CMP(arg2, ">") == 0) {
+                shell_echo(text_copy, fileName_copy);
+            } else if (ARG_CMP(arg2, ">>") == 0) {
+                shell_echo_append(text_copy, fileName_copy);
+            }
+            argument check = findNextArg(fileName.nextStart);
+            if(check.found){
+                printf("cat usage ...\n");
+                continue;
+            }
+        }
+//        else if(ARG_CMP)
     }
     return 0;
 }

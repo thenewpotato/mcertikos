@@ -111,6 +111,8 @@ void thread_sleep(void *chan, spinlock_t *lk)
     tcb_set_state(old_cur_pid, TSTATE_SLEEP);
     tcb_set_chan(old_cur_pid, chan);
 
+    // Add the new sleeping thread to the thread queue 0
+    tqueue_enqueue(0, old_cur_pid);
     unsigned int new_cur_pid = tqueue_dequeue(NUM_IDS);
     tcb_set_state(new_cur_pid, TSTATE_RUN);
     set_curid(new_cur_pid);
@@ -133,13 +135,21 @@ void thread_sleep(void *chan, spinlock_t *lk)
 void thread_wakeup(void *chan)
 {
     spinlock_acquire(&sched_lk);
-    for (unsigned int pid = 0; pid < NUM_IDS; pid++) {
-        if (tcb_get_chan(pid) == chan) {
-            tcb_set_chan(pid, 0);
-            tcb_set_state(pid, TSTATE_READY);
+
+    unsigned int new_pid = tqueue_dequeue(0);
+    while (new_pid != NUM_IDS) {
+
+        if (tcb_get_chan(new_pid) == chan) {
+            tcb_set_chan(new_pid, 0);
+            tcb_set_state(new_pid, TSTATE_READY);
             // For some reason, there is only one ready queue on this multi-CPU machine
-            tqueue_enqueue(NUM_IDS, pid);
+            tqueue_enqueue(NUM_IDS, new_pid);
         }
+        else{
+            tqueue_enqueue(0, new_pid);
+        }
+        new_pid = tqueue_dequeue(0);
     }
+
     spinlock_release(&sched_lk);
 }

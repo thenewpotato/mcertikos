@@ -668,14 +668,14 @@ void sys_chdir(tf_t *tf)
     tcb_set_cwd(pid, ip);
 }
 
-#define MAX_CWD_LEN 300
+
 void sys_getcwd(tf_t *tf) {
-    uintptr_t userBuffer = syscall_get_arg2(tf);    // User buffer must be at least MAX_CWD_LEN bytes
+//    uintptr_t userBuffer = syscall_get_arg2(tf);    // User buffer must be at least MAX_CWD_LEN bytes
     unsigned int pid = get_curid();
 
     KERN_INFO("sys_getcwd enter\n");
-
-    char reversedPath[MAX_CWD_LEN];
+    spinlock_acquire(&kernel_buffer_lock);
+    char *reversedPath = kernel_buffer;
     reversedPath[0] = '\0';
     size_t reversedPath_i = 1;  // next available index (i.e. length)
 
@@ -700,19 +700,21 @@ void sys_getcwd(tf_t *tf) {
                 }
 
                 // slash at the end of each directory name
-                if (reversedPath_i >= MAX_CWD_LEN) {
+                if (reversedPath_i >= KERNEL_BUFFER_SIZE) {
                     // Path length is greater than MAX_CWD_LEN
                     syscall_set_errno(tf, -1);
                     syscall_set_retval1(tf, -1);
+                    spinlock_release(&kernel_buffer_lock);
                     return;
                 }
                 reversedPath[reversedPath_i++] = '/';
 
                 for (int i = lastChar_i; i >= 0; i--) {
-                    if (reversedPath_i >= MAX_CWD_LEN) {
+                    if (reversedPath_i >= KERNEL_BUFFER_SIZE) {
                         // Path length is greater than MAX_CWD_LEN
                         syscall_set_errno(tf, -1);
                         syscall_set_retval1(tf, -1);
+                        spinlock_release(&kernel_buffer_lock);
                         return;
                     }
                     reversedPath[reversedPath_i++] = subdirName[i];
@@ -724,10 +726,11 @@ void sys_getcwd(tf_t *tf) {
     }
 
     // top-level root slash
-    if (reversedPath_i >= MAX_CWD_LEN) {
+    if (reversedPath_i >= KERNEL_BUFFER_SIZE) {
         // Path length is greater than MAX_CWD_LEN
         syscall_set_errno(tf, -1);
         syscall_set_retval1(tf, -1);
+        spinlock_release(&kernel_buffer_lock);
         return;
     }
     reversedPath[reversedPath_i++] = '/';
@@ -748,13 +751,16 @@ void sys_getcwd(tf_t *tf) {
         reversedPath[reversedPath_i - i - 1] = tmp;
     }
 
-    if (pt_copyout(reversedPath, pid, userBuffer, reversedPath_i) != reversedPath_i) {
-        syscall_set_errno(tf, -1);
-        syscall_set_retval1(tf, -1);
-        return;
-    }
 
-    KERN_INFO("sys_getcwd: success\n");
+    KERN_INFO("%s\n", reversedPath);
+//    if (pt_copyout(reversedPath, pid, (uintptr_t)kernel_buffer, reversedPath_i) != reversedPath_i) {
+//        syscall_set_errno(tf, -1);
+//        syscall_set_retval1(tf, -1);
+//        spinlock_release(&kernel_buffer_lock);
+//        return;
+//    }
+
+    spinlock_release(&kernel_buffer_lock);
     syscall_set_retval1(tf, reversedPath_i);
     syscall_set_errno(tf, E_SUCC);
 }
