@@ -2,13 +2,31 @@ Compile: make / make all
 Run tests: make clean && make TEST=1
 Run in qemu: make qemu / make qemu-nox
 Debug with gdb: make qemu-gdb / make qemu-nox-gdb
-                (in another terminal) gdb
+(in another terminal) gdb
 
 To use your solutions from lab 1: git merge lab1
 To use sample lab 1 solutions: copy files in samples/ to appropriate directories
 
 List here the following info:
+
 1. who you have worked with
 2. whether you coded this assignment together, and if not, who worked on which part
 3. brief description of what you have implemented
 4. and anything else you would like us to know
+
+# Collaborators
+
+- Tiger Wang (jw2723)
+- Jackie Dong (jd2598)
+
+# Part 1: Scheduler Support: Sleep and Wakeup
+
+In this part, we implemented more scheduler support in McCertikos. Specifically, we implemented thread_sleep and thread_wakeup which allow threads to sleep until certain resources are available for them to use. This is important specifically for disk writes where, we need to enable our threads to sleep until the disk write carries out. When the write is finished, the hard disk issues a special device interrupt signalaing the threads that were waiting for the write to finish to wake up.
+
+# Part 2: Disk Driver
+
+In this part, we just had to read the documentation about the xv6 file system.
+
+# Part 3: File System Support
+
+In this part we first implemented the functions dir_lookup and dir_link. In dir_lookup, we looped through the directory entries of a specified directory until we found an entry with a name that matched the name we were looking for. In dir_link, we used dir_lookup to find the specified sub directory and then wrote a new directory entry into it. After writing dir_lookup and dir_link, we implemented skippelem and namex in path.c. In skippelem, we parsed the necessary information from the specified path string to extract the next path element as well as the remaining path string. In namex, we found the coressponding inode for the path specified by parsing each element of the path string passed in using skipelem.
