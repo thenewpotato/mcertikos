@@ -9,62 +9,13 @@
 #define T_DIR  1  // Directory
 #define T_FILE 2  // File
 #define T_DEV  3  // Device
-#define IO_CHUNK_SIZE 512   // Reading and writing in chunks of 512 bytes
-
-/*
-"" or "    " => all fields NULL
-"cp" or "     cp" => name=cp, all other fields NULL
-"cp blah"
-*/
-int parseOld(char *line, char **args) {
-    int argi = 0;
-    size_t linei = 0;
-    while (line[linei] != '\0') {
-        if (argi >= 6) {
-            return -1;
-        }
-
-        size_t argstart = linei;
-        if (line[argstart] == '"') {
-            while (line[linei] != '"') {
-                linei++;
-            }
-        }
-        while (line[linei] != ' ' && line[linei] != '\0') {
-            printf("line");
-            linei++;
-        }
-
-        while (line[linei] != ' ' && line[linei] != '\0') {
-            printf("line");
-            linei++;
-        }
-
-        size_t argend = linei;
-        size_t arglen = argend - argstart;
-        printf("parse %d %d\n", argstart, argend);
-        for (int j = argstart; j < arglen; j++) {
-            printf("%c", line[j]);
-        }
-        // printf("\n");
-        if (arglen == 0 || arglen > 128) {
-            return -1;
-        } else {
-            strncpy(args[argi], &line[argstart], arglen);
-            args[argi][arglen] = '\0';
-        }
-
-        argi++;
-        linei++;
-    }
-    return argi + 1;
-}
+#define IO_CHUNK_SIZE 5   // Reading and writing in chunks of 512 bytes
 
 // Definition of dirent copied over from kernel, needed by ls to iterate over dirents
 #define DIRSIZ 14
 struct dirent {
     uint16_t inum;
-    char name[DIRSIZ];
+    char name[DIRSIZ];  // name should always include the null terminator
 };
 
 void shell_ls(char *relativePath) {
@@ -72,11 +23,20 @@ void shell_ls(char *relativePath) {
     size_t nDirents;
     struct file_stat stat;
 
-    // TODO: error handling
     dirfd = open(relativePath, O_RDONLY);
-    fstat(dirfd, &stat);
-    if (stat.size % sizeof(struct dirent) != 0)
-        printf("dir file corrupted\n");
+    if(dirfd < 0){
+        printf("ls: no such file or directory: %s\n", relativePath);
+        return;
+    }
+    int fstat_status = fstat(dirfd, &stat);
+    ASSERT(fstat_status == 0);
+
+    if(stat.type != T_DIR){
+        printf("ls: %s is not a directory\n", relativePath);
+        return;
+    }
+    // fstat, dirfd, directory checking
+    ASSERT(stat.size % sizeof(struct dirent) == 0);
     nDirents = stat.size / sizeof(struct dirent);
     for (size_t i = 0; i < nDirents; i++) {
         struct dirent cur_dirent;
@@ -122,22 +82,59 @@ void shell_cat(char *relativePath) {
         printf("cat: no such file: %s\n", relativePath);
         return;
     }
-    fstat(fd, &stat);
+    int fstat_status = fstat(fd, &stat);
+    ASSERT(fstat_status == 0);
+
     if(stat.type != T_FILE){
         printf("cat: %s: is a directory\n", relativePath);
+        return;
     }
 
-
-    char content[stat.size + 1];
-    printf("cat size %d\n", stat.size);
-    read(fd, content, stat.size);
-    content[stat.size] = '\0';
-    printf("%s", content);
+    char buffer[IO_CHUNK_SIZE + 1];
+    size_t readsize;
+    while ((readsize = read(fd, buffer, IO_CHUNK_SIZE)) > 0) {
+        buffer[readsize] = '\0';
+        printf("%s",buffer);
+    }
+    if(readsize == -1){
+        printf("cat:read failed\n");
+        close(fd);
+        return;
+    }
+    printf("\n");
     close(fd);
 }
 
 void shell_mv(char *src, char *dst) {
     // NOTE: current mv syntax is NOT regular shell syntax, second argument must be file path
+    int src_fd;
+    int dst_fd;
+    int src_fstat_status;
+    int dst_fstat_status;
+    printf("shell_mv: enter(src=%s, dst=%s)\n", src, dst);
+//    src_fd = open(src, O_RDONLY);
+//    if(src_fd < 0){
+//        printf("mv: no such file or directory: %s\n", src);
+//        return;
+//    }
+//    struct file_stat source_stat;
+//    src_fstat_status = fstat(src_fd, &source_stat);
+//    ASSERT(src_fstat_status == 0);
+//    if(source_stat.type != T_FILE){
+//        printf("mv: source %s is not a file\n", src);
+//        close(src_fd);
+//        return;
+//    }
+//
+//    dst_fd = open(dst, O_RDONLY);
+//    if(dst_fd >= 0){
+//        printf("mv: destination already exists: %s\n", dst);
+//        close(src_fd);
+//        close(dst_fd);
+//        return;
+//    }
+//    close(src_fd);
+
     int linkStatus = link(src, dst);
     int unlinkStatus = unlink(src);
     if (linkStatus != 0 || unlinkStatus != 0) {
@@ -246,10 +243,7 @@ void shell_rm_r(char *relativePath) {
     ASSERT(remove_status == 0);
 }
 
-/*
- *
- */
-int copy(char *srcPath, char *destPath) {
+void copy(char *srcPath, char *destPath) {
     int fd_src = open(srcPath, O_RDONLY);
     int fd_dest = open(destPath, O_RDONLY);
     ASSERT(fd_src >= 0);
@@ -258,39 +252,93 @@ int copy(char *srcPath, char *destPath) {
     ASSERT(fstat(fd_src, &fstat_src) == 0);
     ASSERT(fstat_src.type == T_FILE || fstat_src.type == T_DIR);
     if (fstat_src.type == T_FILE) {
-        ASSERT(close(fd_dest) == 0);
         fd_dest = open(destPath, O_RDWR | O_CREATE);
         ASSERT(fd_dest >= 0);
         char buffer[IO_CHUNK_SIZE];
         while (read(fd_src, buffer, IO_CHUNK_SIZE) > 0) {
             ASSERT(write(fd_dest, buffer, IO_CHUNK_SIZE) > 0);
         }
+        ASSERT(close(fd_src) == 0);
+        ASSERT(close(fd_dest) == 0);
+        printf("copy: copied %s to %s\n", srcPath, destPath);
     } else {
+        printf("copy: copying dir %s to %s\n", srcPath, destPath);
+        ASSERT(mkdir(destPath) == 0);
+        ASSERT(fstat_src.size % sizeof(struct dirent) == 0);
+        size_t nDirents = fstat_src.size / sizeof(struct dirent);
+        for (size_t i = 0; i < nDirents; i++) {
+            struct dirent cur_dirent;
 
+            ASSERT(read(fd_src, (char *) &cur_dirent, sizeof(struct dirent)) > 0);
+            if (cur_dirent.inum == 0)   // inum 0 indicates empty entry
+                break;
+            if (strcmp(cur_dirent.name, ".") == 0 || strcmp(cur_dirent.name, "..") == 0)
+                continue;
+            size_t len_srcPath = strlen(srcPath);
+            size_t len_destPath = strlen(destPath);
+            char childSrcPath[len_srcPath + DIRSIZ + 1];
+            char childDestPath[len_destPath + DIRSIZ + 1];
+            strcpy(childSrcPath, srcPath);
+            strcpy(childDestPath, destPath);
+            childSrcPath[len_srcPath] = '/';
+            childDestPath[len_destPath] = '/';
+            strncpy(&childSrcPath[len_srcPath + 1], cur_dirent.name, DIRSIZ);
+            strncpy(&childDestPath[len_destPath + 1], cur_dirent.name, DIRSIZ);
+            printf("copy: recursively copying %s to %s\n", childSrcPath, childDestPath);
+            copy(childSrcPath, childDestPath);
+        }
+        ASSERT(close(fd_src) == 0);
     }
 }
 
-void shell_cp(char *src, char *dst) {
-    int fdSrc = open(src, O_RDONLY);
-    int fdDest = open(dst, O_RDWR | O_CREATE);
-    if (fdSrc < 0) {
-        printf("cp: no such file: %s\n", src);
+void shell_cp(char *srcPath, char *destPath) {
+    int fd_src = open(srcPath, O_RDONLY);
+    if (fd_src < 0) {
+        printf("cp: no such file or directory: %s\n", srcPath);
         return;
     }
-    if (fdDest < 0) {
-        printf("cp: no such file: %s\n", dst);
+    struct file_stat stat_src;
+    int fstat_status = fstat(fd_src, &stat_src);
+    if (fstat_status != 0) {
+        printf("cp: no such file or directory: %s\n", srcPath);
         return;
     }
-    struct file_stat statSrc;
-    fstat(fdSrc, &statSrc);
-    char contentSrc[statSrc.size];
-    int readStatus = read(fdSrc, contentSrc, statSrc.size);
-    int writeStatus = write(fdDest, contentSrc, statSrc.size);
-    if (readStatus < 0 || writeStatus < 0) {
-        printf("cp: read/write failed\n");
+    if (stat_src.type != T_FILE) {
+        printf("cp: not a file: %s\n", srcPath);
+        return;
     }
-    close(fdSrc);
-    close(fdDest);
+    ASSERT(close(fd_src) == 0);
+    int fd_dest = open(destPath, O_RDONLY);
+    if (fd_dest >= 0) {
+        ASSERT(close(fd_dest) == 0);
+        printf("cp: %s already exists (not copied)\n", destPath);
+    }
+    copy(srcPath, destPath);
+}
+
+void shell_cp_r(char *srcPath, char *destPath) {
+    int fd_src = open(srcPath, O_RDONLY);
+    if (fd_src < 0) {
+        printf("cp: no such file or directory: %s\n", srcPath);
+        return;
+    }
+    struct file_stat stat_src;
+    int fstat_status = fstat(fd_src, &stat_src);
+    if (fstat_status != 0) {
+        printf("cp: no such file or directory: %s\n", srcPath);
+        return;
+    }
+    if (stat_src.type != T_DIR) {
+        printf("cp: not a directory: %s\n", srcPath);
+        return;
+    }
+    ASSERT(close(fd_src) == 0);
+    int fd_dest = open(destPath, O_RDONLY);
+    if (fd_dest >= 0) {
+        ASSERT(close(fd_dest) == 0);
+        printf("cp: %s already exists (not copied)\n", destPath);
+    }
+    copy(srcPath, destPath);
 }
 
 void shell_echo(char *text, char *relativePath) {
@@ -299,9 +347,14 @@ void shell_echo(char *text, char *relativePath) {
         printf("echo: no such file: %s\n", relativePath);
         return;
     }
-    int writeStatus = write(fd, text, strlen(text));
-    if (writeStatus < 0) {
-        printf("echo: write failed\n");
+    size_t len_text = strlen(text);
+    for (size_t i = 0; i < len_text; i += IO_CHUNK_SIZE) {
+        int writeStatus = write(fd, &text[i], MIN(len_text - i, IO_CHUNK_SIZE));
+        if (writeStatus < 0) {
+            printf("echo: write failed\n");
+            close(fd);
+            return;
+        }
     }
     close(fd);
 }
@@ -312,27 +365,25 @@ void shell_echo_append(char *text, char *relativePath) {
         printf("echo: no such file: %s\n", relativePath);
         return;
     }
-    char unused_buffer[IO_CHUNK_SIZE];
+    char unused_buffer[IO_CHUNK_SIZE];  // used to advance the file pointer to the end of the file
     while (read(fd, unused_buffer, IO_CHUNK_SIZE) > 0) {}
-    int writeStatus = write(fd, text, strlen(text));
-    if (writeStatus < 0) {
-        printf("echo: write failed\n");
+
+    size_t len_text = strlen(text);
+    for (size_t i = 0; i < len_text; i += IO_CHUNK_SIZE) {
+        int writeStatus = write(fd, &text[i], MIN(len_text - i, IO_CHUNK_SIZE));
+        if (writeStatus < 0) {
+            printf("echo: write failed\n");
+            close(fd);
+            return;
+        }
     }
     close(fd);
 }
 
 void shell_pwd() {
-//    printf("not implemented yet\n");
     if(getcwd() == -1){
         printf("pwd failed\n");
     }
-//    return;
-//    char buffer[300];
-//    int pathLen = getcwd(buffer);
-//    if (pathLen <= 0) {
-//        printf("cwd failed\n");
-//    }
-
 }
 
 typedef struct {
@@ -347,7 +398,8 @@ argument findNextArg(const char *command) {
     argument r;
     size_t cur = 0;
     char endChar = ' ';
-    while (command[cur] == ' ') {
+    int insideQuoteEmpty = 1;
+    while (command[cur] == ' ' || command[cur] == 127) {
         cur++;
     }
     if (command[cur] == '"') {
@@ -361,9 +413,20 @@ argument findNextArg(const char *command) {
     size_t start_index = cur;
     r.start = &command[cur];
     while ((command[cur] != endChar) && (command[cur] != '\0')) {
+        if (endChar == '"' && command[cur] != ' ') {
+            insideQuoteEmpty = 0;
+        }
         cur++;
     }
     r.len = cur - start_index;
+    if (endChar == '"' && r.len == 0) {
+        r.found = 0;
+        return r;
+    }
+    if (endChar == '"' && insideQuoteEmpty) {
+        r.found = 0;
+        return r;
+    }
     r.found = 1;
     // at this point command[cur] points at the delim char, either space or quote
     if (command[cur] != '\0') {
@@ -434,6 +497,7 @@ void test_cwd() {
     strncpy(buffer, (arg).start, (arg).len); \
     (buffer)[(arg).len] = '\0'; \
 }
+
 #define CHECK_ARG(arg, message) { \
     if (!(arg).found) {             \
         printf("%s\n", message);  \
@@ -441,7 +505,13 @@ void test_cwd() {
     } \
 }
 
-
+#define CHECK_ARG_LIMIT(arg, message) { \
+    argument next_arg = findNextArg((arg).nextStart);\
+    if ((next_arg).found) {             \
+        printf("%s\n", message);  \
+        continue;                 \
+    } \
+}
 int main(int argc, char *argv[]) {
 //    test_cwd();
 
@@ -453,39 +523,36 @@ int main(int argc, char *argv[]) {
             continue;
         }
         printf("received command: %s (%d)\n", name.start, name.len);
+        printf("%d\n", name.start[0]);
+
         if (ARG_CMP(name, "ls") == 0) {
             argument arg1 = findNextArg(name.nextStart);
-            CHECK_ARG(arg1, "ls usage...");
-            char arg1_copy[arg1.len + 1];
-            COPY_ARG(arg1, arg1_copy);
-            shell_ls(arg1_copy);
-
-
-            argument check = findNextArg(arg1.nextStart);
-            if(check.found){
-                printf("cp usage ...\n");
-                continue;
+            if (!arg1.found){
+                shell_ls(".");
             }
+            else{
+                char arg1_copy[arg1.len + 1];
+                COPY_ARG(arg1, arg1_copy);
+
+                CHECK_ARG_LIMIT(arg1, "ls usage...");
+
+                shell_ls(arg1_copy);
+            }
+
         } else if (ARG_CMP(name, "pwd") == 0) {
+            CHECK_ARG_LIMIT(name, "pwd usage...");
             shell_pwd();
 
-            argument check = findNextArg(name.nextStart);
-            if(check.found){
-                printf("cp usage ...\n");
-                continue;
-            }
         } else if (ARG_CMP(name, "cd") == 0) {
             argument arg1 = findNextArg(name.nextStart);
             CHECK_ARG(arg1, "cd usage...");
             char arg1_copy[arg1.len + 1];
             COPY_ARG(arg1, arg1_copy);
+
+            CHECK_ARG_LIMIT(arg1, "cd  usage...");
+
             shell_cd(arg1_copy);
 
-            argument check = findNextArg(arg1.nextStart);
-            if(check.found){
-                printf("cp usage ...\n");
-                continue;
-            }
         }else if (ARG_CMP(name, "cp") == 0) {
             argument arg1 = findNextArg(name.nextStart);
             CHECK_ARG(arg1, "cp usage...");
@@ -503,14 +570,8 @@ int main(int argc, char *argv[]) {
                 char dest_copy[dest.len + 1];
                 COPY_ARG(dest, dest_copy);
 
-                // TODO: shell_cp -r
-
-
-                argument check = findNextArg(dest.nextStart);
-                if(check.found){
-                    printf("cp usage ...\n");
-                    continue;
-                }
+                CHECK_ARG_LIMIT(dest, "cp usage...");
+                shell_cp_r(source_copy, dest_copy);
 
             } else {
                 char source_copy[arg1.len + 1];
@@ -521,54 +582,41 @@ int main(int argc, char *argv[]) {
                 char dest_copy[dest.len + 1];
                 COPY_ARG(dest, dest_copy);
                 shell_cp(source_copy, dest_copy);
-                argument check = findNextArg(dest.nextStart);
-                if(check.found){
-                    printf("cp usage ...\n");
-                    continue;
-                }
+
             }
 
         }
         else if(ARG_CMP(name, "mv") == 0){
             argument source = findNextArg(name.nextStart);
-            CHECK_ARG(source, "mv usage ...");
+            CHECK_ARG(source, "mv usage...");
             char source_copy[source.len + 1];
             COPY_ARG(source, source_copy);
 
             argument dest = findNextArg(source.nextStart);
-            CHECK_ARG(dest, "mv usage ...");
+            CHECK_ARG(dest, "mv usage...");
             char dest_copy[dest.len + 1];
             COPY_ARG(dest, dest_copy);
+            CHECK_ARG_LIMIT(dest, "mv usage...");
             shell_mv(source_copy, dest_copy);
 
-
-            argument check = findNextArg(dest.nextStart);
-            if(check.found){
-                printf("mv usage ...\n");
-                continue;
-            }
         }
         else if (ARG_CMP(name, "rm") == 0) {
             argument arg1 = findNextArg(name.nextStart);
+            CHECK_ARG(arg1, "rm usage...");
+
             if (ARG_CMP(arg1, "-r") == 0) {
                 argument arg2 = findNextArg(arg1.nextStart);
+                CHECK_ARG(arg2, "rm usage...");
+
                 char arg2_copy[arg2.len + 1];
                 COPY_ARG(arg2, arg2_copy);
+                CHECK_ARG_LIMIT(arg2, "rm usage...");
                 shell_rm_r(arg2_copy);
-                argument check = findNextArg(arg2.nextStart);
-                if(check.found){
-                    printf("rm usage ...\n");
-                    continue;
-                }
             } else {
                 char arg1_copy[arg1.len + 1];
                 COPY_ARG(arg1, arg1_copy);
+                CHECK_ARG_LIMIT(arg1, "rm usage...");
                 shell_rm(arg1_copy);
-                argument check = findNextArg(arg1.nextStart);
-                if(check.found){
-                    printf("cat usage ...\n");
-                    continue;
-                }
             }
         }
         else if (ARG_CMP(name, "mkdir") == 0) {
@@ -576,47 +624,48 @@ int main(int argc, char *argv[]) {
             CHECK_ARG(arg1, "mkdir usage...");
             char arg1_copy[arg1.len + 1];
             COPY_ARG(arg1, arg1_copy);
-
+            CHECK_ARG_LIMIT(arg1, "mkdir usage...");
             shell_mkdir(arg1_copy);
-            argument check = findNextArg(arg1.nextStart);
-            if(check.found){
-                printf("mkdir usage ...\n");
-                continue;
-            }
         }
         else if(ARG_CMP(name, "cat") == 0){
             argument file = findNextArg(name.nextStart);
-            CHECK_ARG(file, "cat usage ...")
+            CHECK_ARG(file, "cat usage...")
             char file_copy[file.len + 1];
             COPY_ARG(file, file_copy);
-            shell_cat(file_copy);
 
-            argument check = findNextArg(file.nextStart);
-            if(check.found){
-                printf("cat usage ...\n");
-                continue;
-            }
+            CHECK_ARG_LIMIT(file, "cat usage...");
+            shell_cat(file_copy);
         }
         else if (ARG_CMP(name, "echo") == 0) {
             argument text = findNextArg(name.nextStart);
+            CHECK_ARG(text, "echo usage...");
             char text_copy[text.len + 1];
             COPY_ARG(text, text_copy);
+
             argument arg2 = findNextArg(text.nextStart);
+            CHECK_ARG(arg2, "echo usage...");
+
             argument fileName = findNextArg(arg2.nextStart);
+            CHECK_ARG(fileName, "echo usage...");
+
             char fileName_copy[fileName.len + 1];
             COPY_ARG(fileName, fileName_copy);
+
+            CHECK_ARG_LIMIT(fileName, "echo usage...");
             if (ARG_CMP(arg2, ">") == 0) {
                 shell_echo(text_copy, fileName_copy);
             } else if (ARG_CMP(arg2, ">>") == 0) {
                 shell_echo_append(text_copy, fileName_copy);
             }
-            argument check = findNextArg(fileName.nextStart);
-            if(check.found){
-                printf("cat usage ...\n");
-                continue;
+            else{
+                printf("echo usage...\n");
             }
         }
-//        else if(ARG_CMP)
+        else{
+            char name_copy[name.len + 1];
+            COPY_ARG(name, name_copy);
+            printf("command not found: %s\n", name_copy);
+        }
     }
     return 0;
 }
