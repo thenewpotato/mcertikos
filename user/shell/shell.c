@@ -622,6 +622,13 @@ void test_cwd()
     }
     printf("user side cwd succeeded, path=%s\n", buffer);
 }
+void test_nested() {
+    for (int i = 0; i < 100; i++) {
+        shell_mkdir("test");
+        shell_cd("test");
+    }
+    shell_pwd();
+}
 
 #define ARG_CMP(parsed_name, target_name) strncmp((parsed_name).start, target_name, MAX((parsed_name).len, strlen(target_name)))
 #define COPY_ARG(arg, buffer)                    \
@@ -837,6 +844,7 @@ void shell_loop() {
 int main(int argc, char *argv[])
 {
 //    test_backend();
+//    test_nested();
     shell_loop();
     return 0;
 }
