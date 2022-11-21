@@ -852,7 +852,7 @@ void sys_getcwd(tf_t *tf)
         reversedPath[reversedPath_i - i - 1] = tmp;
     }
 
-    // KERN_INFO("%s\n", reversedPath);
+     KERN_INFO("%s\n", reversedPath);
     //    if (pt_copyout(reversedPath, pid, (uintptr_t)kernel_buffer, reversedPath_i) != reversedPath_i) {
     //        syscall_set_errno(tf, -1);
     //        syscall_set_retval1(tf, -1);
