@@ -37,13 +37,19 @@ In this part of the lab we implemented a unix-like shell on top of our file syst
 
 # ls
 
+For the ls command, we simply loop through the specified path directory's directory entries and print out the names of the entries. We implemented both support for ls without arguments and ls with arguments.
+
 # pwd
 
 # cd
 
+For the cd command, we simply called the system call chdir with the specied path directory. We also decided to implement functionality for cd with no arguments, assuming that the HOME directory was "..".
+
 # cp
 
 # mv
+
+For the mv command, we simply create a link between the source file and the destination file and then remove the link from the source file. We do this using the sys_link and sys_unlink system calls.
 
 # mkdir
 
