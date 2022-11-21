@@ -16,13 +16,15 @@ void bbq_init(bounded_buffer_t *bbq)
 // inserts an item with value into the bounded buffer queue
 void bbq_insert(bounded_buffer_t *bbq, unsigned int value)
 {
+    intr_local_disable();
     KERN_DEBUG("CPU %d: Process %d: Produced %d\n", get_pcpu_idx(), get_curid(), value);
+    intr_local_enable();
     spinlock_acquire(&bbq->lock);
     while ((bbq->next_empty - bbq->front) == BUFFER_SIZE)
     {
-//        intr_local_disable();
-//        KERN_DEBUG("Queue full. Putting this process on wait\n");
-//        intr_local_enable();
+        //        intr_local_disable();
+        //        KERN_DEBUG("Queue full. Putting this process on wait\n");
+        //        intr_local_enable();
         cv_wait(&bbq->item_removed, &bbq->lock);
     }
 
@@ -30,8 +32,8 @@ void bbq_insert(bounded_buffer_t *bbq, unsigned int value)
     bbq->next_empty++;
     cv_signal(&bbq->item_added);
 
-//    intr_local_disable();
-//    intr_local_enable();
+    //    intr_local_disable();
+    //    intr_local_enable();
 
     spinlock_release(&bbq->lock);
 }
@@ -42,19 +44,21 @@ unsigned int bbq_remove(bounded_buffer_t *bbq)
     spinlock_acquire(&bbq->lock);
     while (bbq->front == bbq->next_empty)
     {
-//        intr_local_disable();
-//        KERN_DEBUG("Queue empty. Putting this process on wait\n");
-//        intr_local_enable();
+        //        intr_local_disable();
+        //        KERN_DEBUG("Queue empty. Putting this process on wait\n");
+        //        intr_local_enable();
         cv_wait(&bbq->item_added, &bbq->lock);
     }
     unsigned int item = bbq->items[bbq->front % BUFFER_SIZE];
     bbq->front++;
     cv_signal(&bbq->item_removed);
 
-//    intr_local_disable();
-//    intr_local_enable();
+    //    intr_local_disable();
+    //    intr_local_enable();
 
     spinlock_release(&bbq->lock);
+    intr_local_disable();
     KERN_DEBUG("CPU %d: Process %d: Consumed %d\n", get_pcpu_idx(), get_curid(), item);
+    intr_local_enable();
     return item;
 }
