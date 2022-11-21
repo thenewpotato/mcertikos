@@ -64,16 +64,6 @@ unsigned int thread_spawn(void *entry, unsigned int id, unsigned int quota)
  */
 void thread_yield(void)
 {
-    /*
-     * Acquire thread lock for CPU
-     * set timer to 0
-     * Old thread is ready
-     * enqueue old thread
-     * loop through queue until finding a ready thread
-     * set new thread to running
-     * set current id
-     * release lock and context switch
-     */
     unsigned int new_cur_pid;
     unsigned int old_cur_pid;
     spinlock_acquire(&sched_lks[get_pcpu_idx()]);
@@ -93,41 +83,24 @@ void thread_yield(void)
     }
 }
 
-void thread_suspend(spinlock_t *cv_lock) {
-    /*
-     * Acquire thread lock
-     * release passed lock
-     * set old to sleep
-     *
-     */
-
+void thread_suspend(spinlock_t *lk, unsigned int old_cur_pid)
+{
+    unsigned int new_cur_pid;
     spinlock_acquire(&sched_lks[get_pcpu_idx()]);
-    spinlock_release(cv_lock);
+    KERN_ASSERT(old_cur_pid == get_curid());
 
-    sched_ticks[get_pcpu_idx()] = 0;
+    new_cur_pid = tqueue_dequeue(NUM_IDS + get_pcpu_idx());
+    KERN_ASSERT(new_cur_pid != NUM_IDS);
 
-    unsigned int old_cur_pid = get_curid();
+    spinlock_release(lk);
 
     tcb_set_state(old_cur_pid, TSTATE_SLEEP);
-    tqueue_enqueue(NUM_IDS + get_pcpu_idx(), old_cur_pid);
-
-    unsigned int new_cur_pid = tqueue_dequeue(NUM_IDS + get_pcpu_idx());
-    while (tcb_get_state(new_cur_pid) != TSTATE_READY) {
-        tqueue_enqueue(NUM_IDS + get_pcpu_idx(), new_cur_pid);
-        new_cur_pid = tqueue_dequeue(NUM_IDS + get_pcpu_idx());
-    }
     tcb_set_state(new_cur_pid, TSTATE_RUN);
     set_curid(new_cur_pid);
 
-    if (new_cur_pid != NUM_IDS) {
-        spinlock_release(&sched_lks[get_pcpu_idx()]);
-
-        kctx_switch(old_cur_pid, new_cur_pid);
-
-        return;
-    }
-
     spinlock_release(&sched_lks[get_pcpu_idx()]);
+
+    kctx_switch(old_cur_pid, new_cur_pid);
 }
 
     /*
