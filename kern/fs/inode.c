@@ -193,7 +193,7 @@ void inode_put(struct inode *ip)
     if (ip->ref == 1 && (ip->flags & I_VALID) && ip->nlink == 0)
     {
         // inode has no links: truncate and free inode.
-        KERN_INFO("inode_put: %d has no links, deleting\n", ip->inum);
+//        KERN_INFO("inode_put: %d has no links, deleting\n", ip->inum);
         if (ip->flags & I_BUSY)
             KERN_PANIC("inode_put busy");
         ip->flags |= I_BUSY;
@@ -273,7 +273,7 @@ static uint32_t bmap(struct inode *ip, uint32_t bn)
  */
 static void inode_trunc(struct inode *ip)
 {
-    KERN_INFO("inode_trunc: %d has no links, deleting\n", ip->inum);
+//    KERN_INFO("inode_trunc: %d has no links, deleting\n", ip->inum);
     int i, j;
     struct buf *bp;
     uint32_t *a;

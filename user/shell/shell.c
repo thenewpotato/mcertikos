@@ -71,7 +71,7 @@ void shell_cd(char *relativePath)
 {
     if (chdir(relativePath) != 0)
     {
-        printf("cd: no such file or directory: %s\n", relativePath);
+        printf("cd: no such directory: %s\n", relativePath);
         return;
     }
 }
@@ -121,7 +121,6 @@ void shell_cat(char *relativePath)
         close(fd);
         return;
     }
-    printf("\n");
     close(fd);
 }
 
@@ -269,6 +268,10 @@ void shell_rm_r(char *relativePath)
         printf("rm: not a directory: %s\n", relativePath);
         return;
     }
+    if (strcmp(relativePath, ".") == 0 || strcmp(relativePath, "..") == 0) {
+        printf("rm: cannot remove %s\n", relativePath);
+        return;
+    }
     int close_status = close(fd);
     ASSERT(close_status == 0);
     int remove_status = remove(relativePath);
@@ -289,9 +292,10 @@ void copy(char *srcPath, char *destPath)
         fd_dest = open(destPath, O_RDWR | O_CREATE);
         ASSERT(fd_dest >= 0);
         char buffer[IO_CHUNK_SIZE];
-        while (read(fd_src, buffer, IO_CHUNK_SIZE) > 0)
+        size_t bytesRead = 0;
+        while ((bytesRead = read(fd_src, buffer, IO_CHUNK_SIZE)) > 0)
         {
-            ASSERT(write(fd_dest, buffer, IO_CHUNK_SIZE) > 0);
+            ASSERT(write(fd_dest, buffer, bytesRead) > 0);
         }
         ASSERT(close(fd_src) == 0);
         ASSERT(close(fd_dest) == 0);
@@ -359,6 +363,20 @@ void shell_cp(char *srcPath, char *destPath)
     copy(srcPath, destPath);
 }
 
+/*
+ * cp hello hello2  hello -> hello2
+ * cp hello hello2  hello -> hello2/hello
+ * cp hello .       hello -> hello
+ * hello/file1
+ * hello/file2
+ *
+ *
+ * hello2/hello
+ * hello2/hello/file1
+ * hello2/hello/test
+ *
+ * cp hello hello2
+ */
 void shell_cp_r(char *srcPath, char *destPath)
 {
     int fd_src = open(srcPath, O_RDONLY);
@@ -391,7 +409,21 @@ void shell_cp_r(char *srcPath, char *destPath)
 
 void shell_echo(char *text, char *relativePath)
 {
-    int fd = open(relativePath, O_RDWR | O_CREATE);
+    int fd = open(relativePath, O_RDONLY);
+    if (fd >= 0) {
+        // If the file already exists, first check that it is not a directory
+        // then remove it in order to wipe out its contents
+        struct file_stat stat;
+        int fstat_status = fstat(fd, &stat);
+        ASSERT(fstat_status == 0);
+        if (stat.type != T_FILE) {
+            printf("echo: not a file: %s\n", relativePath);
+            return;
+        }
+        ASSERT(close(fd) == 0);
+        ASSERT(remove(relativePath) == 0);
+    }
+    fd = open(relativePath, O_RDWR | O_CREATE);
     if (fd < 0)
     {
         printf("echo: no such file: %s\n", relativePath);
@@ -408,12 +440,31 @@ void shell_echo(char *text, char *relativePath)
             return;
         }
     }
+    int writeStatus = write(fd, "\n", 1);
+    if (writeStatus < 1)
+    {
+        printf("echo: write failed\n");
+        close(fd);
+        return;
+    }
     close(fd);
 }
 
 void shell_echo_append(char *text, char *relativePath)
 {
-    int fd = open(relativePath, O_RDWR | O_CREATE);
+    int fd = open(relativePath, O_RDONLY);
+    if (fd >= 0) {
+        // If the file already exists, check that it is not a directory
+        struct file_stat stat;
+        int fstat_status = fstat(fd, &stat);
+        ASSERT(fstat_status == 0);
+        if (stat.type != T_FILE) {
+            printf("echo: not a file: %s\n", relativePath);
+            return;
+        }
+        ASSERT(close(fd) == 0);
+    }
+    fd = open(relativePath, O_RDWR | O_CREATE);
     if (fd < 0)
     {
         printf("echo: no such file: %s\n", relativePath);
@@ -434,6 +485,13 @@ void shell_echo_append(char *text, char *relativePath)
             close(fd);
             return;
         }
+    }
+    int writeStatus = write(fd, "\n", 1);
+    if (writeStatus < 1)
+    {
+        printf("echo: write failed\n");
+        close(fd);
+        return;
     }
     close(fd);
 }
@@ -636,7 +694,7 @@ int main(int argc, char *argv[])
             argument arg1 = findNextArg(name.nextStart);
             if (!arg1.found)
             {
-                shell_cd("..");
+                shell_cd("/");
             }
             else
             {

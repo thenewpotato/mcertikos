@@ -6,4 +6,4 @@
 #  read f
 #do :; done
 
-rsync -zar -e "ssh -i $HOME/.ssh/id_zoo" ./ jw2723@node.zoo.cs.yale.edu:~/mcertikos
+rsync -Pzar -e "ssh -i $HOME/.ssh/id_zoo" ./ jw2723@node.zoo.cs.yale.edu:~/mcertikos
