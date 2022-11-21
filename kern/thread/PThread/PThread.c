@@ -11,7 +11,7 @@
 
 spinlock_t thread_lock;
 //spinlock_t sched_lock[NUM_CPUS];
-unsigned int milliseconds_elapsed[NUM_CPUS];
+unsigned int sched_ticks[NUM_CPUS];
 
 void thread_init(unsigned int mbi_addr)
 {
@@ -76,7 +76,7 @@ void thread_yield(void)
      */
     spinlock_acquire(&thread_lock);
 
-    milliseconds_elapsed[get_pcpu_idx()] = 0;
+    sched_ticks[get_pcpu_idx()] = 0;
 
     unsigned int new_cur_pid;
     unsigned int old_cur_pid = get_curid();
@@ -114,7 +114,7 @@ void thread_suspend(spinlock_t *cv_lock) {
     spinlock_acquire(&thread_lock);
     spinlock_release(cv_lock);
 
-    milliseconds_elapsed[get_pcpu_idx()] = 0;
+    sched_ticks[get_pcpu_idx()] = 0;
 
     unsigned int old_cur_pid = get_curid();
 
@@ -156,16 +156,10 @@ void thread_make_ready(unsigned int pid) {
 }
 
 void sched_update() {
-    spinlock_acquire(&thread_lock);
-//    spinlock_acquire(&sched_lock[get_pcpu_idx()]);
-    int current_cpu = get_pcpu_idx();
-    milliseconds_elapsed[current_cpu] += 1000 / LAPIC_TIMER_INTR_FREQ;
-    if (milliseconds_elapsed[current_cpu] >= SCHED_SLICE) {
-        milliseconds_elapsed[current_cpu] = 0;
-        spinlock_release(&thread_lock);
+    sched_ticks[get_pcpu_idx()] += 1000 / LAPIC_TIMER_INTR_FREQ;
+    if (sched_ticks[get_pcpu_idx()] >= SCHED_SLICE) {
+        sched_ticks[get_pcpu_idx()] = 0;
         thread_yield();
-    } else {
-        spinlock_release(&thread_lock);
     }
 
 //    spinlock_release(&sched_lock[get_pcpu_idx()]);
