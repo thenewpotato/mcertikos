@@ -8,14 +8,15 @@ int main(int argc, char **argv)
     printf("ping started.\n");
 
     // fast producing
-    for (i = 0; i < 200; i++)
+    for (i = 0; i < 100; i++)
         produce(i);
 
-//    // slow producing
-//    for (i = 0; i < 40; i++) {
-//        if (i % 4 == 0)
-//            produce(i);
-//    }
+    // slow producing
+    for (i = 0; i < 400; i++)
+    {
+        if (i % 4 == 0)
+            produce(i);
+    }
 
     printf("ping ended\n");
 

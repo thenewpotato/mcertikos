@@ -39,17 +39,17 @@ unsigned int thread_spawn(void *entry, unsigned int id, unsigned int quota)
      * Put on scheduler queue
      * Release thread lock
      */
+    unsigned int pid;
     spinlock_acquire(&sched_lks[get_pcpu_idx()]);
 
-    unsigned int pid = kctx_new(entry, id, quota);
+    pid = kctx_new(entry, id, quota);
     if (pid != NUM_IDS) {
         tcb_set_cpu(pid, get_pcpu_idx());
         tcb_set_state(pid, TSTATE_READY);
         tqueue_enqueue(NUM_IDS + get_pcpu_idx(), pid);
     }
 
-    spinlock_acquire(&sched_lks[get_pcpu_idx()]);
-
+    spinlock_release(&sched_lks[get_pcpu_idx()]);
     return pid;
 }
 
