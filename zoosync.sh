@@ -6,4 +6,5 @@
 #  read f
 #do :; done
 
-rsync -Pzar -e "ssh -i $HOME/.ssh/id_zoo" ./ jw2723@node.zoo.cs.yale.edu:~/mcertikos
+if [ "$1" == "to" ]; then rsync -Pzar -e "ssh -i $HOME/.ssh/id_zoo" ./ jw2723@node.zoo.cs.yale.edu:~/mcertikos; fi
+if [ "$1" == "from" ]; then rsync -Pzar -e "ssh -i $HOME/.ssh/id_zoo" jw2723@node.zoo.cs.yale.edu:~/mcertikos ../; fi
