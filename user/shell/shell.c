@@ -634,13 +634,20 @@ int main(int argc, char *argv[])
         else if (ARG_CMP(name, "cd") == 0)
         {
             argument arg1 = findNextArg(name.nextStart);
-            CHECK_ARG(arg1, "usage: cd dirname");
-            char arg1_copy[arg1.len + 1];
-            COPY_ARG(arg1, arg1_copy);
+            if (!arg1.found)
+            {
+                shell_cd("..");
+            }
+            else
+            {
+                CHECK_ARG(arg1, "usage: cd dirname");
+                char arg1_copy[arg1.len + 1];
+                COPY_ARG(arg1, arg1_copy);
 
-            CHECK_ARG_LIMIT(arg1, "usage: cd dirname");
+                CHECK_ARG_LIMIT(arg1, "usage: cd dirname");
 
-            shell_cd(arg1_copy);
+                shell_cd(arg1_copy);
+            }
         }
         else if (ARG_CMP(name, "cp") == 0)
         {
@@ -764,7 +771,7 @@ int main(int argc, char *argv[])
         }
         else if(ARG_CMP(name, "touch") == 0){
             argument file_name = findNextArg(name.nextStart); 
-            CHECK_ARG(file_name, "touch usage...");
+            CHECK_ARG(file_name, "usage: touch filename");
             char file_name_copy[file_name.len + 1];
             COPY_ARG(file_name, file_name_copy);
             
