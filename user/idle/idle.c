@@ -25,7 +25,7 @@ int main(int argc, char **argv)
 {
     printf("idle\n");
 
-    // run_fstest();
+//    run_fstest();
     run_shell();
 
     return 0;

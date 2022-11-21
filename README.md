@@ -19,9 +19,12 @@ List here the following info:
 - Tiger Wang (jw2723)
 - Jackie Dong (jd2598)
 
+# Running
+Currently, `make qemu-nox` runs the shell program that we have written in `user/shell/shell.c`. In order to run `fstest`, comment out line 29 of `idle.c` and uncomment line 28. 
+
 # Part 1: Scheduler Support: Sleep and Wakeup
 
-In this part, we implemented more scheduler support in McCertikos. Specifically, we implemented thread_sleep and thread_wakeup which allow threads to sleep until certain resources are available for them to use. This is important specifically for disk writes where, we need to enable our threads to sleep until the disk write carries out. When the write is finished, the hard disk issues a special device interrupt signaling the threads that were waiting for the write to finish to wake up. To sleep a process on a certain channel, we set the process `channel` to the appropriate pointer, set its state to sleeping, and enqueue it to queue 0, which we use as the waiting queue. In `thread_wakeup`, we wake up all threads sleeping with the specified channel. To do so, we loop through the sleeping queue, dequeueing each thread that has the specified channel, setting their state to `TSTATE_READY`, and enqueueing them to the ready queue.
+In this part, we implemented more scheduler support in mcertikos. Specifically, we implemented thread_sleep and thread_wakeup which allow threads to sleep until certain resources are available for them to use. This is important specifically for disk writes where, we need to enable our threads to sleep until the disk write carries out. When the write is finished, the hard disk issues a special device interrupt signaling the threads that were waiting for the write to finish to wake up. To sleep a process on a certain channel, we set the process `channel` to the appropriate pointer, set its state to sleeping, and enqueue it to queue 0, which we use as the waiting queue. In `thread_wakeup`, we wake up all threads sleeping with the specified channel. To do so, we loop through the sleeping queue, dequeueing each thread that has the specified channel, setting their state to `TSTATE_READY`, and enqueueing them to the ready queue.
 
 # Part 2: Disk Driver
 
