@@ -147,12 +147,14 @@ void thread_make_ready(unsigned int pid) {
      * release thread lock
      */
 
-    spinlock_acquire(&sched_lks[get_pcpu_idx()]);
+void thread_ready(unsigned int pid)
+{
+    spinlock_acquire(&sched_lks[tcb_get_cpu(pid)]);
 
     tcb_set_state(pid, TSTATE_READY);
-//    tqueue_enqueue(NUM_IDS + tcb_get_cpu(pid), pid);
+    tqueue_enqueue(NUM_IDS + tcb_get_cpu(pid), pid);
 
-    spinlock_release(&sched_lks[get_pcpu_idx()]);
+    spinlock_release(&sched_lks[tcb_get_cpu(pid)]);
 }
 
 void sched_update() {
