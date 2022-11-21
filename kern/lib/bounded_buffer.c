@@ -16,7 +16,9 @@ void bbq_init(bounded_buffer_t *bbq)
 // inserts an item with value into the bounded buffer queue
 void bbq_insert(bounded_buffer_t *bbq, unsigned int value)
 {
+    intr_local_disable();
     KERN_DEBUG("CPU %d: Process %d: Produced %d\n", get_pcpu_idx(), get_curid(), value);
+    intr_local_enable();
     spinlock_acquire(&bbq->lock);
     while ((bbq->next_empty - bbq->front) == BUFFER_SIZE)
     {
@@ -55,6 +57,8 @@ unsigned int bbq_remove(bounded_buffer_t *bbq)
 //    intr_local_enable();
 
     spinlock_release(&bbq->lock);
+    intr_local_disable();
     KERN_DEBUG("CPU %d: Process %d: Consumed %d\n", get_pcpu_idx(), get_curid(), item);
+    intr_local_enable();
     return item;
 }
