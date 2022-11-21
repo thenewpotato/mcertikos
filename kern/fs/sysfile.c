@@ -35,6 +35,13 @@ void kernel_buffer_init(void)
     spinlock_init(&kernel_buffer_lock);
 }
 
+// TODO: remove this
+extern struct
+{
+    spinlock_t lock;
+    struct inode inode[NINODE];
+} inode_cache;
+
 // file system init -> dev init
 
 /**
@@ -535,6 +542,11 @@ static struct inode *create(char *path, short type, short major, short minor)
 
 void sys_open(tf_t *tf)
 {
+    // TODO: REMOVE THIS
+    for (size_t i = 0; i < 5; i++) {
+        KERN_INFO("open start inode_cache inum=%d type=%d\n", inode_cache.inode[i].inum, inode_cache.inode[i].type);
+    }
+
     size_t len = syscall_get_arg4(tf);
     if (len > 128)
     {
@@ -579,6 +591,7 @@ void sys_open(tf_t *tf)
             syscall_set_errno(tf, E_NEXIST);
             return;
         }
+//        KERN_INFO("sys_open obtained ip %d type %d\n", ip->inum, ip->type);
         inode_lock(ip);
         if (ip->type == T_DIR && omode != O_RDONLY)
         {
@@ -613,6 +626,12 @@ void sys_open(tf_t *tf)
 
     // KERN_INFO("sys_open inum=%d\n", ip->inum);
     syscall_set_retval1(tf, fd);
+
+    // TODO: remove this
+    for (size_t i = 0; i < 5; i++) {
+        KERN_INFO("open end inode_cache inum=%d type=%d\n", inode_cache.inode[i].inum, inode_cache.inode[i].type);
+    }
+
     syscall_set_errno(tf, E_SUCC);
 }
 
@@ -644,6 +663,7 @@ void sys_mkdir(tf_t *tf)
         syscall_set_errno(tf, E_DISK_OP);
         return;
     }
+    KERN_INFO("mkdir %s inum=%d type=%d\n", path, ip->inum, ip->type);
     inode_unlockput(ip);
     commit_trans();
     syscall_set_errno(tf, E_SUCC);
@@ -651,6 +671,11 @@ void sys_mkdir(tf_t *tf)
 
 void sys_chdir(tf_t *tf)
 {
+    // TODO: REMOVE THIS
+    for (size_t i = 0; i < 5; i++) {
+        KERN_INFO("chdir start inode_cache inum=%d type=%d\n", inode_cache.inode[i].inum, inode_cache.inode[i].type);
+    }
+
     size_t len = syscall_get_arg3(tf);
     if (len > 128)
     {
@@ -686,12 +711,22 @@ void sys_chdir(tf_t *tf)
     inode_unlock(ip);
     inode_put(tcb_get_cwd(pid));
     tcb_set_cwd(pid, ip);
+
+    // TODO: REMOVE THIS
+    for (size_t i = 0; i < 5; i++) {
+        KERN_INFO("chdir end inode_cache inum=%d type=%d\n", inode_cache.inode[i].inum, inode_cache.inode[i].type);
+    }
+
     syscall_set_errno(tf, E_SUCC);
-    tcb_set_cwd(pid, ip);
 }
 
 
 void sys_getcwd(tf_t *tf) {
+    // TODO: REMOVE THIS
+    for (size_t i = 0; i < 5; i++) {
+        KERN_INFO("getcwd start inode_cache inum=%d type=%d ref=%d busy=%d\n", inode_cache.inode[i].inum, inode_cache.inode[i].type, inode_cache.inode[i].ref, inode_cache.inode[i].flags & I_BUSY);
+    }
+
 //    uintptr_t userBuffer = syscall_get_arg2(tf);    // User buffer must be at least MAX_CWD_LEN bytes
     unsigned int pid = get_curid();
 
@@ -704,10 +739,37 @@ void sys_getcwd(tf_t *tf) {
 //    KERN_INFO("sys_getcwd: allocated\n");
 
     struct inode * leaf = tcb_get_cwd(pid); // leaf must be a directory
+    inode_dup(leaf);
+    inode_lock(leaf);
+    // / a b c d
+    // 2 0 0 0 1
+    // * * - - -
+
+    // /
+    // 1
+    // -
+
+    // / a
+    // 1 1
+    // * -
+
+    // / a b
+    // 64 0 1
+    // - - -
 //    KERN_INFO("sys_getcwd: leaf=%p inum=%d\n", leaf, leaf->inum);
     while (leaf->inum != ROOTINO) {
 //        KERN_INFO("sys_getcwd: looking at leaf=%d\n", leaf->inum);
-        struct inode *parent = dir_lookup(leaf, "..", NULL);
+//        struct inode *parent = dir_lookup(leaf, "..", NULL);
+//        inode_lock(parent);
+        struct inode * parent = dir_lookup(leaf, "..", NULL);
+        inode_lock(parent);
+
+        // TODO: REMOVE THIS
+        KERN_INFO("getcwd parent of %d is %d\n", leaf->inum, parent->inum);
+        for (size_t i = 0; i < 5; i++) {
+            KERN_INFO("getcwd end inode_cache inum=%d type=%d ref=%d busy=%d\n", inode_cache.inode[i].inum, inode_cache.inode[i].type, inode_cache.inode[i].ref, inode_cache.inode[i].flags & I_BUSY);
+        }
+
         for (unsigned int offset = 0; offset < parent->size; offset += sizeof(struct dirent)) {
             struct dirent sub_dir;
             inode_read(parent, (char *) (&sub_dir), offset, sizeof(struct dirent));
@@ -744,7 +806,14 @@ void sys_getcwd(tf_t *tf) {
                 break;
             }
         }
+        inode_unlockput(leaf);
         leaf = parent;
+    }
+    inode_unlockput(leaf);
+
+    // TODO: REMOVE THIS
+    for (size_t i = 0; i < 5; i++) {
+        KERN_INFO("getcwd end inode_cache inum=%d type=%d ref=%d busy=%d\n", inode_cache.inode[i].inum, inode_cache.inode[i].type, inode_cache.inode[i].ref, inode_cache.inode[i].flags & I_BUSY);
     }
 
     // top-level root slash

@@ -21,8 +21,10 @@ struct inode *dir_lookup(struct inode *dp, char *name, uint32_t *poff)
 
     // KERN_INFO("dir_lookup dp=%p name=%s poff=%p\n", dp, name, poff);
 
+//    KERN_INFO("looking up %s in inum %d %d\n", name, dp->inum, dp->type);
+
     if (dp->type != T_DIR)
-        KERN_PANIC("dir_lookup not DIR");
+        KERN_PANIC("dir_lookup not DIR inum %d type=%d", dp->inum, dp->type);
 
     for (unsigned int offset = 0; offset < dp->size; offset += sizeof(struct dirent))
     {

@@ -115,7 +115,9 @@ static struct inode *namex(char *path, bool nameiparent, char *name)
             inode_unlock(ip);
             return ip;
         }
+//        KERN_INFO("namex %d %d lookgup %s\n", ip->inum, ip->type, name);
         struct inode *child = dir_lookup(ip, name, &poff);
+//        KERN_INFO("namex %d %d lookgup %s\n", ip->inum, ip->type, name);
         inode_unlockput(ip);
 
         // KERN_INFO("child inode pointer=%p\n", ip);
@@ -129,7 +131,7 @@ static struct inode *namex(char *path, bool nameiparent, char *name)
             return 0;
         }
     }
-    // inode_dup(ip);
+//    inode_dup(ip);
     // KERN_INFO("namex: returning inum=%d\n", ip->inum);
     return ip;
 }

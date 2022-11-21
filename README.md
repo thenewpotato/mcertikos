@@ -37,33 +37,60 @@ In this part of the lab we implemented a unix-like shell on top of our file syst
 
 ## Test Run
 ```
-ls
-mkdir dir1
-mkdir dir1/dir2
-cp README dir1/dir2/COPY
-cp -r dir1 dir3
-pwd
-ls dir3
-cd dir3/dir2
-echo "hello world!" > COPY
-cat COPY
-pwd
-cd ../..
-cd dir1
-cd dir2
-echo "goodbye world!" >> COPY
-cat COPY
-touch TOUCH
-mv TOUCH /TOUCH
-cd
-echo "blah blah blah" > TOUCH
-cp TOUCH TOUCH2
-rm -r dir1
-ls
-rm TOUCH
-ls
-cat TOUCH2
-pwd
+$ ls
+.       ..      README  
+$ mkdir dir1
+$ mkdir dir1/dir2
+$ ls
+.       ..      README  dir1    
+$ cp README dir1/dir2/COPY
+$ cp -r dir1 dir3
+$ ls
+.       ..      README  dir1    dir3    
+$ pwd
+/
+$ ls dir3
+.       ..      dir2    
+$ cd dir3/dir2
+$ ls
+.       ..      COPY    
+$ echo "hello world" > COPY
+$ cat COPY
+hello world
+$ pwd
+/dir3/dir2/
+$ cd ../..
+$ ls
+.       ..      README  dir1    dir3    
+$ cd dir1
+$ cd dir2
+$ ls
+.       ..      COPY    
+$ echo "goodbyte world!" >> COPY
+$ cat COPY
+<Original README content displayed here, omitted for conciseness>
+goodbyte world!
+$ touch TOUCH
+$ ls
+.       ..      COPY    TOUCH   
+$ mv TOUCH /TOUCH
+$ cd
+$ pwd
+/
+$ echo "blah blah blah" > TOUCH
+$ cp TOUCH TOUCH2
+$ ls
+.       ..      README  dir1    dir3    TOUCH   TOUCH2  
+$ rm -r dir1
+$ ls
+.       ..      README  dir3    TOUCH   TOUCH2  
+$ rm TOUCH
+$ ls
+.       ..      README  dir3    TOUCH2  
+$ cat TOUCH2
+blah blah blah
+$ pwd
+/
 ```
 
 ## Specification

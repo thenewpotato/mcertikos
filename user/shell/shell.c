@@ -591,26 +591,15 @@ void test_findNextArg()
 
 void test_backend()
 {
-    shell_mkdir("blah/blah");
-    shell_mkdir("testDir");
-    shell_cd("testDir");
-    shell_mkdir("nested");
-    shell_touch("test.txt");
-    shell_touch("test2.txt");
-    shell_echo("hello world!\n", "test2.txt");
-    shell_cat("test2.txt");
-    shell_cp("test2.txt", "test3.txt");
-    shell_cat("test3.txt");
-    shell_echo("goodbye world!\n", "test2.txt");
-    shell_cat("test2.txt");
-    shell_cat("test3.txt");
-    shell_ls(".");
-    shell_mv("test2.txt", "../test2.txt");
-    shell_ls(".");
-    shell_rm("test.txt");
-    shell_ls(".");
-    shell_rm("test.txt");
-    shell_ls("..");
+    shell_mkdir("dir1");
+    shell_mkdir("dir1/dir2");
+//    shell_cp("README", "dir1/dir2/COPY");
+    shell_cd("dir1/dir2");
+//    shell_echo("hello", "COPY");
+    int fd = open("COPY", O_RDWR | O_CREATE);
+    printf("%d\n", fd);
+//    close(fd);
+    shell_pwd();
 }
 
 void test_cwd()
@@ -659,12 +648,8 @@ void test_cwd()
             continue;                                     \
         }                                                 \
     }
-int main(int argc, char *argv[])
-{
-    //    test_cwd();
-
+void shell_loop() {
     char command[1024];
-
     while (sys_readline("$ ", command) == 0)
     {
         argument name = findNextArg(command);
@@ -672,9 +657,6 @@ int main(int argc, char *argv[])
         {
             continue;
         }
-//        printf("received command: %s (%d)\n", name.start, name.len);
-//        printf("%d\n", name.start[0]);
-
         if (ARG_CMP(name, "ls") == 0)
         {
             argument arg1 = findNextArg(name.nextStart);
@@ -836,11 +818,11 @@ int main(int argc, char *argv[])
             }
         }
         else if(ARG_CMP(name, "touch") == 0){
-            argument file_name = findNextArg(name.nextStart); 
+            argument file_name = findNextArg(name.nextStart);
             CHECK_ARG(file_name, "usage: touch filename");
             char file_name_copy[file_name.len + 1];
             COPY_ARG(file_name, file_name_copy);
-            
+
             CHECK_ARG_LIMIT(file_name, "usage: touch filename");
             shell_touch(file_name_copy);
         }
@@ -851,5 +833,10 @@ int main(int argc, char *argv[])
             printf("command not found: %s\n", name_copy);
         }
     }
+}
+int main(int argc, char *argv[])
+{
+//    test_backend();
+    shell_loop();
     return 0;
 }
