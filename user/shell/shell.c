@@ -105,6 +105,7 @@ void shell_cat(char *relativePath)
     if (stat.type != T_FILE)
     {
         printf("cat: %s: is a directory\n", relativePath);
+        ASSERT(close(fd) == 0);
         return;
     }
 
@@ -235,10 +236,12 @@ void shell_rm(char *relativePath)
     if (fstat_status != 0)
     {
         printf("rm: no such file or directory: %s\n", relativePath);
+        close(fd);
         return;
     }
     if (stat.type != T_FILE)
     {
+        close(fd);
         printf("rm: not a file: %s\n", relativePath);
         return;
     }
@@ -260,15 +263,18 @@ void shell_rm_r(char *relativePath)
     int fstat_status = fstat(fd, &stat);
     if (fstat_status != 0)
     {
+        close(fd);
         printf("rm: no such file or directory: %s\n", relativePath);
         return;
     }
     if (stat.type != T_DIR)
     {
+        close(fd);
         printf("rm: not a directory: %s\n", relativePath);
         return;
     }
     if (strcmp(relativePath, ".") == 0 || strcmp(relativePath, "..") == 0) {
+        close(fd);
         printf("rm: cannot remove %s\n", relativePath);
         return;
     }
@@ -345,11 +351,13 @@ void shell_cp(char *srcPath, char *destPath)
     int fstat_status = fstat(fd_src, &stat_src);
     if (fstat_status != 0)
     {
+        close(fd_src);
         printf("cp: no such file or directory: %s\n", srcPath);
         return;
     }
     if (stat_src.type != T_FILE)
     {
+        close(fd_src);
         printf("cp: not a file: %s\n", srcPath);
         return;
     }
@@ -359,6 +367,7 @@ void shell_cp(char *srcPath, char *destPath)
     {
         ASSERT(close(fd_dest) == 0);
         printf("cp: %s already exists (not copied)\n", destPath);
+        return;
     }
     copy(srcPath, destPath);
 }
@@ -389,26 +398,27 @@ void shell_cp_r(char *srcPath, char *destPath)
     int fstat_status = fstat(fd_src, &stat_src);
     if (fstat_status != 0)
     {
+        close(fd_src);
         printf("cp: no such file or directory: %s\n", srcPath);
         return;
     }
     if (stat_src.type != T_DIR)
     {
+        close(fd_src);
         printf("cp: not a directory: %s\n", srcPath);
         return;
     }
     ASSERT(close(fd_src) == 0);
     int fd_dest = open(destPath, O_RDONLY);
-    if (fd_dest >= 0)
-    {
+    if (fd_dest >= 0) {
         ASSERT(close(fd_dest) == 0);
         printf("cp: %s already exists (not copied)\n", destPath);
+        return;
     }
     copy(srcPath, destPath);
 }
 
-void shell_echo(char *text, char *relativePath)
-{
+void shell_echo(char *text, char *relativePath) {
     int fd = open(relativePath, O_RDONLY);
     if (fd >= 0) {
         // If the file already exists, first check that it is not a directory
@@ -418,36 +428,33 @@ void shell_echo(char *text, char *relativePath)
         ASSERT(fstat_status == 0);
         if (stat.type != T_FILE) {
             printf("echo: not a file: %s\n", relativePath);
+            ASSERT(close(fd) == 0);
             return;
         }
         ASSERT(close(fd) == 0);
         ASSERT(remove(relativePath) == 0);
     }
     fd = open(relativePath, O_RDWR | O_CREATE);
-    if (fd < 0)
-    {
+    if (fd < 0) {
         printf("echo: no such file: %s\n", relativePath);
         return;
     }
     size_t len_text = strlen(text);
-    for (size_t i = 0; i < len_text; i += IO_CHUNK_SIZE)
-    {
+    for (size_t i = 0; i < len_text; i += IO_CHUNK_SIZE) {
         int writeStatus = write(fd, &text[i], MIN(len_text - i, IO_CHUNK_SIZE));
-        if (writeStatus < 0)
-        {
+        if (writeStatus < 0) {
             printf("echo: write failed\n");
-            close(fd);
+            ASSERT(close(fd) == 0);
             return;
         }
     }
     int writeStatus = write(fd, "\n", 1);
-    if (writeStatus < 1)
-    {
+    if (writeStatus < 1) {
         printf("echo: write failed\n");
-        close(fd);
+        ASSERT(close(fd) == 0);
         return;
     }
-    close(fd);
+    ASSERT(close(fd) == 0);
 }
 
 void shell_echo_append(char *text, char *relativePath)
@@ -460,6 +467,7 @@ void shell_echo_append(char *text, char *relativePath)
         ASSERT(fstat_status == 0);
         if (stat.type != T_FILE) {
             printf("echo: not a file: %s\n", relativePath);
+            ASSERT(close(fd) == 0);
             return;
         }
         ASSERT(close(fd) == 0);
