@@ -6,10 +6,10 @@
 #include <gcc.h>
 
 #define exit(...) return __VA_ARGS__
-#define T_DIR 1         // Directory
-#define T_FILE 2        // File
-#define T_DEV 3         // Device
-#define IO_CHUNK_SIZE 5 // Reading and writing in chunks of 512 bytes
+#define T_DIR 1             // Directory
+#define T_FILE 2            // File
+#define T_DEV 3             // Device
+#define IO_CHUNK_SIZE 512   // Reading and writing in chunks of 512 bytes
 
 // Definition of dirent copied over from kernel, needed by ls to iterate over dirents
 #define DIRSIZ 14
@@ -48,7 +48,7 @@ void shell_ls(char *relativePath)
 
         read(dirfd, (char *)&cur_dirent, sizeof(struct dirent));
         if (cur_dirent.inum == 0) // inum 0 indicates empty entry
-            break;
+            continue;
         printf("%s\t", cur_dirent.name);
     }
     printf("\n");
@@ -57,11 +57,14 @@ void shell_ls(char *relativePath)
 
 void shell_mkdir(char *name)
 {
-    int mkdirStatus;
-
-    mkdirStatus = mkdir(name);
-    if (mkdirStatus != 0)
-        printf("mkdir: no such file or directory: %s\n", name);
+    int dirfd = open(name, O_RDONLY);
+    if (dirfd >= 0) {
+        ASSERT(close(dirfd) == 0);
+        printf("mkdir: %s already exists\n", name);
+        return;
+    }
+    int mkdirStatus = mkdir(name);
+    ASSERT(mkdirStatus == 0);
 }
 
 void shell_cd(char *relativePath)
@@ -128,36 +131,34 @@ void shell_mv(char *src, char *dst)
     int src_fd;
     int dst_fd;
     int src_fstat_status;
-    int dst_fstat_status;
-    printf("shell_mv: enter(src=%s, dst=%s)\n", src, dst);
-    //    src_fd = open(src, O_RDONLY);
-    //    if(src_fd < 0){
-    //        printf("mv: no such file or directory: %s\n", src);
-    //        return;
-    //    }
-    //    struct file_stat source_stat;
-    //    src_fstat_status = fstat(src_fd, &source_stat);
-    //    ASSERT(src_fstat_status == 0);
-    //    if(source_stat.type != T_FILE){
-    //        printf("mv: source %s is not a file\n", src);
-    //        close(src_fd);
-    //        return;
-    //    }
-    //
-    //    dst_fd = open(dst, O_RDONLY);
-    //    if(dst_fd >= 0){
-    //        printf("mv: destination already exists: %s\n", dst);
-    //        close(src_fd);
-    //        close(dst_fd);
-    //        return;
-    //    }
-    //    close(src_fd);
+//    printf("shell_mv: enter(src=%s, dst=%s)\n", src, dst);
+    src_fd = open(src, O_RDONLY);
+    if(src_fd < 0){
+        printf("mv: no such file or directory: %s\n", src);
+        return;
+    }
+    struct file_stat source_stat;
+    src_fstat_status = fstat(src_fd, &source_stat);
+    ASSERT(src_fstat_status == 0);
+    if(source_stat.type != T_FILE){
+        printf("mv: source %s is not a file\n", src);
+        close(src_fd);
+        return;
+    }
+
+    dst_fd = open(dst, O_RDONLY);
+    if(dst_fd >= 0){
+        printf("mv: destination already exists: %s\n", dst);
+        close(src_fd);
+        close(dst_fd);
+        return;
+    }
+    close(src_fd);
 
     int linkStatus = link(src, dst);
+    ASSERT(linkStatus == 0);
     int unlinkStatus = unlink(src);
-    //     if (linkStatus != 0 || unlinkStatus != 0) {
-    //         printf("mv failed\n");
-    //     }
+    ASSERT(unlinkStatus == 0);
 }
 
 /*
@@ -183,12 +184,12 @@ int remove(char *relativePath)
         int unlinkStatus = unlink(relativePath);
 
         ASSERT(unlinkStatus == 0);
-        printf("remove: removed file %s\n", relativePath);
+//        printf("remove: removed file %s\n", relativePath);
     }
     else
     {
         int chdir_status = chdir(relativePath);
-        printf("remove: removing dir %s\n", relativePath);
+//        printf("remove: removing dir %s\n", relativePath);
 
         ASSERT(chdir_status == 0);
         ASSERT(fstat_root.size % sizeof(struct dirent) == 0);
@@ -204,7 +205,7 @@ int remove(char *relativePath)
                 break;
             if (strcmp(cur_dirent.name, ".") == 0 || strcmp(cur_dirent.name, "..") == 0)
                 continue;
-            printf("remove: recursively removing %s\n", cur_dirent.name);
+//            printf("remove: recursively removing %s\n", cur_dirent.name);
             int recursive_remove_status = remove(cur_dirent.name);
             ASSERT(recursive_remove_status == 0);
         }
@@ -217,7 +218,7 @@ int remove(char *relativePath)
         int unlinkStatus = unlink(relativePath);
 
         ASSERT(unlinkStatus == 0);
-        printf("remove: removed dir %s\n", relativePath);
+//        printf("remove: removed dir %s\n", relativePath);
     }
     return 0;
 }
@@ -294,11 +295,11 @@ void copy(char *srcPath, char *destPath)
         }
         ASSERT(close(fd_src) == 0);
         ASSERT(close(fd_dest) == 0);
-        printf("copy: copied %s to %s\n", srcPath, destPath);
+//        printf("copy: copied %s to %s\n", srcPath, destPath);
     }
     else
     {
-        printf("copy: copying dir %s to %s\n", srcPath, destPath);
+//        printf("copy: copying dir %s to %s\n", srcPath, destPath);
         ASSERT(mkdir(destPath) == 0);
         ASSERT(fstat_src.size % sizeof(struct dirent) == 0);
         size_t nDirents = fstat_src.size / sizeof(struct dirent);
@@ -321,7 +322,7 @@ void copy(char *srcPath, char *destPath)
             childDestPath[len_destPath] = '/';
             strncpy(&childSrcPath[len_srcPath + 1], cur_dirent.name, DIRSIZ);
             strncpy(&childDestPath[len_destPath + 1], cur_dirent.name, DIRSIZ);
-            printf("copy: recursively copying %s to %s\n", childSrcPath, childDestPath);
+//            printf("copy: recursively copying %s to %s\n", childSrcPath, childDestPath);
             copy(childSrcPath, childDestPath);
         }
         ASSERT(close(fd_src) == 0);
@@ -455,7 +456,7 @@ typedef struct
 
 argument findNextArg(const char *command)
 {
-    printf("find %s\n", command);
+//    printf("find %s\n", command);
     argument r;
     size_t cur = 0;
     char endChar = ' ';
@@ -605,8 +606,8 @@ int main(int argc, char *argv[])
         {
             continue;
         }
-        printf("received command: %s (%d)\n", name.start, name.len);
-        printf("%d\n", name.start[0]);
+//        printf("received command: %s (%d)\n", name.start, name.len);
+//        printf("%d\n", name.start[0]);
 
         if (ARG_CMP(name, "ls") == 0)
         {
@@ -620,47 +621,47 @@ int main(int argc, char *argv[])
                 char arg1_copy[arg1.len + 1];
                 COPY_ARG(arg1, arg1_copy);
 
-                CHECK_ARG_LIMIT(arg1, "ls usage...");
+                CHECK_ARG_LIMIT(arg1, "usage: ls OR ls dirname");
 
                 shell_ls(arg1_copy);
             }
         }
         else if (ARG_CMP(name, "pwd") == 0)
         {
-            CHECK_ARG_LIMIT(name, "pwd usage...");
+            CHECK_ARG_LIMIT(name, "usage: pwd");
             shell_pwd();
         }
         else if (ARG_CMP(name, "cd") == 0)
         {
             argument arg1 = findNextArg(name.nextStart);
-            CHECK_ARG(arg1, "cd usage...");
+            CHECK_ARG(arg1, "usage: cd dirname");
             char arg1_copy[arg1.len + 1];
             COPY_ARG(arg1, arg1_copy);
 
-            CHECK_ARG_LIMIT(arg1, "cd  usage...");
+            CHECK_ARG_LIMIT(arg1, "usage: cd dirname");
 
             shell_cd(arg1_copy);
         }
         else if (ARG_CMP(name, "cp") == 0)
         {
             argument arg1 = findNextArg(name.nextStart);
-            CHECK_ARG(arg1, "cp usage...");
+            CHECK_ARG(arg1, "usage: cp src dest OR cp -r srcDir destDir");
             // Recursive cp
             if (ARG_CMP(arg1, "-r") == 0)
             {
                 // Get the source
                 argument source = findNextArg(arg1.nextStart);
-                CHECK_ARG(source, "cp usage...");
+                CHECK_ARG(source, "usage: cp src dest OR cp -r srcDir destDir");
                 char source_copy[source.len + 1];
                 COPY_ARG(source, source_copy);
 
                 // Get the destination
                 argument dest = findNextArg(source.nextStart);
-                CHECK_ARG(dest, "cp usage...");
+                CHECK_ARG(dest, "usage: cp src dest OR cp -r srcDir destDir");
                 char dest_copy[dest.len + 1];
                 COPY_ARG(dest, dest_copy);
 
-                CHECK_ARG_LIMIT(dest, "cp usage...");
+                CHECK_ARG_LIMIT(dest, "usage: cp src dest OR cp -r srcDir destDir");
                 shell_cp_r(source_copy, dest_copy);
             }
             else
@@ -669,7 +670,7 @@ int main(int argc, char *argv[])
                 COPY_ARG(arg1, source_copy);
 
                 argument dest = findNextArg(arg1.nextStart);
-                CHECK_ARG(dest, "cp usage...");
+                CHECK_ARG(dest, "usage: cp src dest OR cp -r srcDir destDir");
                 char dest_copy[dest.len + 1];
                 COPY_ARG(dest, dest_copy);
                 shell_cp(source_copy, dest_copy);
@@ -678,76 +679,76 @@ int main(int argc, char *argv[])
         else if (ARG_CMP(name, "mv") == 0)
         {
             argument source = findNextArg(name.nextStart);
-            CHECK_ARG(source, "mv usage...");
+            CHECK_ARG(source, "usage: mv src dest");
             char source_copy[source.len + 1];
             COPY_ARG(source, source_copy);
 
             argument dest = findNextArg(source.nextStart);
-            CHECK_ARG(dest, "mv usage...");
+            CHECK_ARG(dest, "usage: mv src dest");
             char dest_copy[dest.len + 1];
             COPY_ARG(dest, dest_copy);
-            CHECK_ARG_LIMIT(dest, "mv usage...");
+            CHECK_ARG_LIMIT(dest, "usage: mv src dest");
             shell_mv(source_copy, dest_copy);
         }
         else if (ARG_CMP(name, "rm") == 0)
         {
             argument arg1 = findNextArg(name.nextStart);
-            CHECK_ARG(arg1, "rm usage...");
+            CHECK_ARG(arg1, "usage: rm filename OR rm -r dirname");
 
             if (ARG_CMP(arg1, "-r") == 0)
             {
                 argument arg2 = findNextArg(arg1.nextStart);
-                CHECK_ARG(arg2, "rm usage...");
+                CHECK_ARG(arg2, "usage: rm filename OR rm -r dirname");
 
                 char arg2_copy[arg2.len + 1];
                 COPY_ARG(arg2, arg2_copy);
-                CHECK_ARG_LIMIT(arg2, "rm usage...");
+                CHECK_ARG_LIMIT(arg2, "usage: rm filename OR rm -r dirname");
                 shell_rm_r(arg2_copy);
             }
             else
             {
                 char arg1_copy[arg1.len + 1];
                 COPY_ARG(arg1, arg1_copy);
-                CHECK_ARG_LIMIT(arg1, "rm usage...");
+                CHECK_ARG_LIMIT(arg1, "usage: rm filename OR rm -r dirname");
                 shell_rm(arg1_copy);
             }
         }
         else if (ARG_CMP(name, "mkdir") == 0)
         {
             argument arg1 = findNextArg(name.nextStart);
-            CHECK_ARG(arg1, "mkdir usage...");
+            CHECK_ARG(arg1, "usage: mkdir dirname");
             char arg1_copy[arg1.len + 1];
             COPY_ARG(arg1, arg1_copy);
-            CHECK_ARG_LIMIT(arg1, "mkdir usage...");
+            CHECK_ARG_LIMIT(arg1, "usage: mkdir dirname");
             shell_mkdir(arg1_copy);
         }
         else if (ARG_CMP(name, "cat") == 0)
         {
             argument file = findNextArg(name.nextStart);
-            CHECK_ARG(file, "cat usage...")
+            CHECK_ARG(file, "usage: cat filename")
             char file_copy[file.len + 1];
             COPY_ARG(file, file_copy);
 
-            CHECK_ARG_LIMIT(file, "cat usage...");
+            CHECK_ARG_LIMIT(file, "usage: cat filename")
             shell_cat(file_copy);
         }
         else if (ARG_CMP(name, "echo") == 0)
         {
             argument text = findNextArg(name.nextStart);
-            CHECK_ARG(text, "echo usage...");
+            CHECK_ARG(text, "usage: echo \"text\" > filename OR echo \"text\" >> filename");
             char text_copy[text.len + 1];
             COPY_ARG(text, text_copy);
 
             argument arg2 = findNextArg(text.nextStart);
-            CHECK_ARG(arg2, "echo usage...");
+            CHECK_ARG(arg2, "usage: echo \"text\" > filename OR echo \"text\" >> filename");
 
             argument fileName = findNextArg(arg2.nextStart);
-            CHECK_ARG(fileName, "echo usage...");
+            CHECK_ARG(fileName, "usage: echo \"text\" > filename OR echo \"text\" >> filename");
 
             char fileName_copy[fileName.len + 1];
             COPY_ARG(fileName, fileName_copy);
 
-            CHECK_ARG_LIMIT(fileName, "echo usage...");
+            CHECK_ARG_LIMIT(fileName, "usage: echo \"text\" > filename OR echo \"text\" >> filename");
             if (ARG_CMP(arg2, ">") == 0)
             {
                 shell_echo(text_copy, fileName_copy);
@@ -758,17 +759,16 @@ int main(int argc, char *argv[])
             }
             else
             {
-                printf("echo usage...\n");
+                printf("usage: echo \"text\" > filename OR echo \"text\" >> filename");
             }
         }
-        else if(ARG_CMP(name, "touch") == 0){ 
-
+        else if(ARG_CMP(name, "touch") == 0){
             argument file_name = findNextArg(name.nextStart); 
             CHECK_ARG(file_name, "touch usage...");
             char file_name_copy[file_name.len + 1];
             COPY_ARG(file_name, file_name_copy);
             
-            CHECK_ARG_LIMIT(file_name, "echo usage...");
+            CHECK_ARG_LIMIT(file_name, "usage: touch filename");
             shell_touch(file_name_copy);
         }
         else

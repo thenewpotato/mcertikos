@@ -303,10 +303,12 @@ void sys_fstat(tf_t *tf)
  */
 void sys_link(tf_t *tf)
 {
+//    KERN_INFO("sys_link enter\n");
     size_t oldlen = syscall_get_arg4(tf);
     size_t newlen = syscall_get_arg5(tf);
     if (oldlen > 128 || newlen > 128)
     {
+//        KERN_INFO("sys_link len check failed\n");
         // TODO: set appropriate errno
         syscall_set_errno(tf, -1);
         return;
@@ -317,6 +319,7 @@ void sys_link(tf_t *tf)
     if (pt_copyin(get_curid(), syscall_get_arg2(tf), old, oldlen) != oldlen ||
         pt_copyin(get_curid(), syscall_get_arg3(tf), new, newlen) != newlen)
     {
+//        KERN_INFO("sys_link copyin failed\n");
         // TODO: set appropriate errno
         syscall_set_errno(tf, -1);
         return;
@@ -327,15 +330,18 @@ void sys_link(tf_t *tf)
 
     if ((ip = namei(old)) == 0)
     {
+//        KERN_INFO("sys_link existing failed\n");
         syscall_set_errno(tf, E_NEXIST);
         return;
     }
+//    KERN_INFO("sys_link: before %d %d %d %d %d\n", ip->nlink, ip->inum, ip->type, ip->dev, ip->ref);
 
     begin_trans();
 
     inode_lock(ip);
     if (ip->type == T_DIR)
     {
+//        KERN_INFO("sys_link dir failed\n");
         inode_unlockput(ip);
         commit_trans();
         syscall_set_errno(tf, E_DISK_OP);
@@ -346,11 +352,14 @@ void sys_link(tf_t *tf)
     inode_update(ip);
     inode_unlock(ip);
 
-    if ((dp = nameiparent(new, name)) == 0)
+    if ((dp = nameiparent(new, name)) == 0) {
+//        KERN_INFO("sys_link namei failed\n");
         goto bad;
+    }
     inode_lock(dp);
     if (dp->dev != ip->dev || dir_link(dp, name, ip->inum) < 0)
     {
+//        KERN_INFO("sys_link dev failed\n");
         inode_unlockput(dp);
         goto bad;
     }
@@ -358,7 +367,9 @@ void sys_link(tf_t *tf)
     inode_put(ip);
 
     commit_trans();
-
+//
+//    KERN_INFO("sys_link: after %d %d %d %d %d\n", ip->nlink, ip->inum, ip->type, ip->dev, ip->ref);
+//    KERN_INFO("sys_link success\n");
     syscall_set_errno(tf, E_SUCC);
     return;
 
@@ -432,6 +443,12 @@ void sys_unlink(tf_t *tf)
         goto bad;
     inode_lock(ip);
 
+//    KERN_INFO("sys_unlink: off %d\n", off);
+//    KERN_INFO("sys_unlink: before %d %d %d %d %d\n", ip->nlink, ip->inum, ip->type, ip->dev, ip->ref);
+//    struct dirent readDebug;
+//    inode_read(dp, (char *) &readDebug, off, sizeof(readDebug));
+//    KERN_INFO("sys_unlink: at offset %d %s\n", readDebug.inum, readDebug.name);
+
     if (ip->nlink < 1)
         KERN_PANIC("unlink: nlink < 1");
     if (ip->type == T_DIR && !isdirempty(ip))
@@ -439,6 +456,8 @@ void sys_unlink(tf_t *tf)
         inode_unlockput(ip);
         goto bad;
     }
+
+//    KERN_INFO("sys_unlink %d %s\n", ip->inum, de.name);
 
     memset(&de, 0, sizeof(de));
     if (inode_write(dp, (char *)&de, off, sizeof(de)) != sizeof(de))
@@ -455,7 +474,10 @@ void sys_unlink(tf_t *tf)
     inode_unlockput(ip);
 
     commit_trans();
+//    KERN_INFO("sys_unlink: after %d %d %d %d %d\n", ip->nlink, ip->inum, ip->type, ip->dev, ip->ref);
 
+
+//    KERN_INFO("sys_unlink success\n");
     syscall_set_errno(tf, E_SUCC);
     return;
 
@@ -673,18 +695,18 @@ void sys_getcwd(tf_t *tf) {
 //    uintptr_t userBuffer = syscall_get_arg2(tf);    // User buffer must be at least MAX_CWD_LEN bytes
     unsigned int pid = get_curid();
 
-    KERN_INFO("sys_getcwd enter\n");
+//    KERN_INFO("sys_getcwd enter\n");
     spinlock_acquire(&kernel_buffer_lock);
     char *reversedPath = kernel_buffer;
     reversedPath[0] = '\0';
     size_t reversedPath_i = 1;  // next available index (i.e. length)
 
-    KERN_INFO("sys_getcwd: allocated\n");
+//    KERN_INFO("sys_getcwd: allocated\n");
 
     struct inode * leaf = tcb_get_cwd(pid); // leaf must be a directory
-    KERN_INFO("sys_getcwd: leaf=%p inum=%d\n", leaf, leaf->inum);
+//    KERN_INFO("sys_getcwd: leaf=%p inum=%d\n", leaf, leaf->inum);
     while (leaf->inum != ROOTINO) {
-        KERN_INFO("sys_getcwd: looking at leaf=%d\n", leaf->inum);
+//        KERN_INFO("sys_getcwd: looking at leaf=%d\n", leaf->inum);
         struct inode *parent = dir_lookup(leaf, "..", NULL);
         for (unsigned int offset = 0; offset < parent->size; offset += sizeof(struct dirent)) {
             struct dirent sub_dir;
@@ -734,7 +756,7 @@ void sys_getcwd(tf_t *tf) {
         return;
     }
     reversedPath[reversedPath_i++] = '/';
-    KERN_INFO("sys_getcwd: final reversedPath_i=%d\n", reversedPath_i);
+//    KERN_INFO("sys_getcwd: final reversedPath_i=%d\n", reversedPath_i);
 
     // reverse path
     for (int i = 0; i < reversedPath_i / 2; i++) {

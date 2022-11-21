@@ -16,11 +16,11 @@ static char sys_buf[NUM_IDS][PAGESIZE];
 // Content of readline returned by writing to buffer passsed through syscall arg
 void sys_readline(tf_t *tf)
 {
-    KERN_INFO("readline enter\n");
+//    KERN_INFO("readline enter\n");
     uintptr_t promptUser = syscall_get_arg2(tf);
     size_t promptlen = syscall_get_arg3(tf);
     uintptr_t resultUser = syscall_get_arg4(tf);
-    KERN_INFO("readline prompt=%p, len=%d, result=%p\n", promptUser, promptlen, resultUser);
+//    KERN_INFO("readline prompt=%p, len=%d, result=%p\n", promptUser, promptlen, resultUser);
 
     // Error checking
     if (promptlen > 128)
