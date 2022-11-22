@@ -132,19 +132,20 @@ void shell_mv(char *src, char *dst)
     int dst_fd;
     int src_fstat_status;
 //    printf("shell_mv: enter(src=%s, dst=%s)\n", src, dst);
+
     src_fd = open(src, O_RDONLY);
     if(src_fd < 0){
         printf("mv: no such file or directory: %s\n", src);
         return;
     }
-    struct file_stat source_stat;
-    src_fstat_status = fstat(src_fd, &source_stat);
-    ASSERT(src_fstat_status == 0);
-    if(source_stat.type != T_FILE){
-        printf("mv: source %s is not a file\n", src);
-        close(src_fd);
-        return;
-    }
+//    struct file_stat source_stat;
+//    src_fstat_status = fstat(src_fd, &source_stat);
+//    ASSERT(src_fstat_status == 0);
+//    if(source_stat.type != T_FILE){
+//        printf("mv: source %s is not a file\n", src);
+//        close(src_fd);
+//        return;
+//    }
 
     dst_fd = open(dst, O_RDONLY);
     if(dst_fd >= 0){
@@ -155,10 +156,10 @@ void shell_mv(char *src, char *dst)
     }
     close(src_fd);
 
-    int linkStatus = link(src, dst);
-    ASSERT(linkStatus == 0);
-    int unlinkStatus = unlink(src);
-    ASSERT(unlinkStatus == 0);
+    if (rename(src ,dst) != 0) {
+        printf("mv failed\n");
+        return;
+    }
 }
 
 /*

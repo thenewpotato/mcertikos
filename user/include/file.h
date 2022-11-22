@@ -55,5 +55,7 @@ struct file {
 #define mkdir(path)       sys_mkdir((path))
 #define chdir(path)       sys_chdir((path))
 #define getcwd()          sys_getcwd()
+#define rename(src, dst)  sys_rename((src), (dst))
+
 
 #endif  /* !_USER_FILE_H_ */

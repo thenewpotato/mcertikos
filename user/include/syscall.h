@@ -224,4 +224,23 @@ static gcc_inline int sys_getcwd() {
     return errno ? -1 : ret;
 }
 
+
+static gcc_inline int sys_rename(char *src, char *dst) {
+    int errno, ret;
+    size_t src_length = strlen(src);
+    size_t dst_length = strlen(dst);
+
+    asm volatile("int %2"
+            : "=a"(errno), "=b"(ret)
+            : "i"(T_SYSCALL),
+              "a"(SYS_rename),
+              "b"(src),
+              "c"(dst),
+              "d"(src_length),
+              "S"(dst_length)
+            : "cc", "memory");
+    return errno ? -1 : 0;
+}
+
+
 #endif /* !_USER_SYSCALL_H_ */

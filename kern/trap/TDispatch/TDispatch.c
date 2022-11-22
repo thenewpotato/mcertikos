@@ -98,6 +98,10 @@ void syscall_dispatch(tf_t *tf)
     case SYS_getcwd:
         sys_getcwd(tf);
         break;
+    case SYS_rename:
+        sys_rename(tf);
+        break;
+
     default:
         syscall_set_errno(tf, E_INVAL_CALLNR);
     }
