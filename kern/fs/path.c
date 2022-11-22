@@ -17,6 +17,7 @@
 #include "inode.h"
 #include "dir.h"
 #include "log.h"
+#include <kern/lib/string.h>
 
 // Paths
 
@@ -37,7 +38,7 @@
  *   skipelem("a", name) = "", setting name = "a"
  *   skipelem("", name) = skipelem("////", name) = 0
  */
-static char *skipelem(volatile char *path, volatile char *name)
+static char *skipelem(char *path, char *name)
 {
     unsigned int i = 0;
     while (path[i] == '/')
@@ -120,10 +121,6 @@ static struct inode *namex(char *path, bool nameiparent, char *name)
 //        KERN_INFO("namex %d %d lookgup %s\n", ip->inum, ip->type, name);
         inode_unlockput(ip);
 
-        // KERN_INFO("child inode pointer=%p\n", ip);
-        // if (child != 0) {
-        //     KERN_INFO("inode inum=%d type=%d\n", ip);\
-        // }
         ip = child;
 
         if (child == 0)

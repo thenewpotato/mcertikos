@@ -130,7 +130,7 @@ void shell_mv(char *src, char *dst)
     // NOTE: current mv syntax is NOT regular shell syntax, second argument must be file path
     int src_fd;
     int dst_fd;
-    int src_fstat_status;
+//    int src_fstat_status;
 //    printf("shell_mv: enter(src=%s, dst=%s)\n", src, dst);
 
     src_fd = open(src, O_RDONLY);
@@ -157,7 +157,7 @@ void shell_mv(char *src, char *dst)
     close(src_fd);
 
     if (rename(src ,dst) != 0) {
-        printf("mv failed\n");
+        printf("mv: cannot move (nothing moved)\n");
         return;
     }
 }

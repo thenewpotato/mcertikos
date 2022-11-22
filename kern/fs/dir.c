@@ -16,9 +16,9 @@ int dir_namecmp(const char *s, const char *t)
  */
 struct inode *dir_lookup(struct inode *dp, char *name, uint32_t *poff)
 {
-    uint32_t off, inum;
-    struct dirent de;
-
+//    uint32_t off, inum;
+//    struct dirent de;
+//
     // KERN_INFO("dir_lookup dp=%p name=%s poff=%p\n", dp, name, poff);
 
 //    KERN_INFO("looking up %s in inum %d %d\n", name, dp->inum, dp->type);

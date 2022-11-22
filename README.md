@@ -39,43 +39,87 @@ In this part we first implemented the functions `dir_lookup` and `dir_link`. In 
 In this part of the lab we implemented a unix-like shell on top of our file system implementation. We first started by creating a new user program in user/shell called shell.c We first added the appropriate functionality to spawn this process by altering sys_spawn and kern/init/init.c Afterwards, we created implemented `sys_readline`, a system call to read in user input. This system call is essentially a wrapper for readline function in kern/dev/console.c. Next, we implemented a user input parser called `findNextArg` which takes in a pointer to a location within the user input returns the next user argument. Finally, we implemented the functionality for the following set of commands: `ls`, `pwd`, `cd`, `cp`, `mv`, `rm`, `mkdir`, `cat`, `touch`, writing a string to a file, and appending a string to a file (we decided to call this command `echo`).
 
 ## Test Run
+### Commands
+```
+ls
+mkdir dir1
+mkdir dir1/dir2
+ls
+cp README dir1/dir2/COPY
+cp -r dir1 dir3
+ls
+pwd
+ls dir3
+mv dir3 dir4
+ls
+cd dir4/dir2
+ls
+echo "hello world" > COPY
+cat COPY
+pwd
+cd ../..
+ls
+cd dir1
+cd dir2
+ls
+echo "goodbye world!" >> COPY
+cat COPY
+touch TOUCH
+ls
+mv TOUCH /TOUCH
+cd
+pwd
+echo "blah blah blah" > TOUCH
+cp TOUCH TOUCH2
+ls
+rm -r dir1
+ls
+rm TOUCH
+ls
+cat TOUCH2
+pwd
+```
+### Output
 ```
 $ ls
-.       ..      README  
+.	..	README	
 $ mkdir dir1
 $ mkdir dir1/dir2
 $ ls
-.       ..      README  dir1    
+.	..	README	dir1	
 $ cp README dir1/dir2/COPY
 $ cp -r dir1 dir3
 $ ls
-.       ..      README  dir1    dir3    
+.	..	README	dir1	dir3	
 $ pwd
 /
 $ ls dir3
-.       ..      dir2    
-$ cd dir3/dir2
+.	..	dir2	
+$ mv dir3 dir4
 $ ls
-.       ..      COPY    
+.	..	README	dir1	dir4	
+$ cd dir4/dir2
+$ ls
+.	..	COPY	
 $ echo "hello world" > COPY
 $ cat COPY
 hello world
 $ pwd
-/dir3/dir2/
+/dir4/dir2/
 $ cd ../..
 $ ls
-.       ..      README  dir1    dir3    
+.	..	README	dir1	dir4	
 $ cd dir1
 $ cd dir2
 $ ls
-.       ..      COPY    
-$ echo "goodbyte world!" >> COPY
+.	..	COPY	
+$ echo "goodbye world!" >> COPY
 $ cat COPY
-<Original README content displayed here, omitted for conciseness>
-goodbyte world!
+<Original content of README, omitted in this demo output for conciseness>
+goodbye world!
 $ touch TOUCH
 $ ls
-.       ..      COPY    TOUCH   
+.	..	COPY	TOUCH	
 $ mv TOUCH /TOUCH
 $ cd
 $ pwd
@@ -83,13 +127,13 @@ $ pwd
 $ echo "blah blah blah" > TOUCH
 $ cp TOUCH TOUCH2
 $ ls
-.       ..      README  dir1    dir3    TOUCH   TOUCH2  
+.	..	README	dir1	TOUCH	dir4	TOUCH2	
 $ rm -r dir1
 $ ls
-.       ..      README  dir3    TOUCH   TOUCH2  
+.	..	README	TOUCH	dir4	TOUCH2	
 $ rm TOUCH
 $ ls
-.       ..      README  dir3    TOUCH2  
+.	..	README	dir4	TOUCH2	
 $ cat TOUCH2
 blah blah blah
 $ pwd

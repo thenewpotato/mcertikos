@@ -878,7 +878,7 @@ void sys_rename(tf_t * tf) {
     path_dest[len_dest] = '\0';
     path_src[len_src] = '\0';
 
-    KERN_INFO("sys_rename: %s -> %s\n", path_src, path_dest);
+//    KERN_INFO("sys_rename: %s -> %s\n", path_src, path_dest);
 
     char name_src[DIRSIZ];
     char name_dest[DIRSIZ];
@@ -890,13 +890,13 @@ void sys_rename(tf_t * tf) {
     begin_trans();
 
     if((dp_src = nameiparent(path_src, name_src)) == 0) {
-        KERN_INFO("sys_rename: src parent does not exist\n");
+//        KERN_INFO("sys_rename: src parent does not exist\n");
         commit_trans();
         syscall_set_errno(tf, E_DISK_OP);
         return;
     }
     if((dp_dest = nameiparent(path_dest, name_dest)) == 0) {
-        KERN_INFO("sys_rename: dst parent does not exist\n");
+//        KERN_INFO("sys_rename: dst parent does not exist\n");
         inode_put(dp_src);
         commit_trans();
         syscall_set_errno(tf, E_DISK_OP);
@@ -905,7 +905,7 @@ void sys_rename(tf_t * tf) {
 
     if (dir_namecmp(name_src, ".") == 0 || dir_namecmp(name_src, "..") == 0 ||
         dir_namecmp(name_dest, ".") == 0 || dir_namecmp(name_dest, "..") == 0) {
-        KERN_INFO("sys_rename: cannot find mv . or ..\n", name_src);
+        KERN_INFO("mv: cannot find move . or ..\n", name_src);
         if (dp_src == dp_dest) {
             inode_put(dp_src);
         } else {
@@ -918,11 +918,11 @@ void sys_rename(tf_t * tf) {
     }
 
     if (dp_src == dp_dest) {
-        KERN_INFO("sys_rename: src and dest have same parent\n");
+//        KERN_INFO("sys_rename: src and dest have same parent\n");
         inode_put(dp_dest);
         inode_lock(dp_src);
     } else {
-        KERN_INFO("sys_rename: src and dest don't have the same parent\n");
+//        KERN_INFO("sys_rename: src and dest don't have the same parent\n");
         inode_lock(dp_src);
         inode_lock(dp_dest);
     }
@@ -930,7 +930,7 @@ void sys_rename(tf_t * tf) {
     ip_src = dir_lookup(dp_src, name_src, &off_src);
     if (ip_src == 0) {
         // path_src is invalid, leaf does not exist
-        KERN_INFO("sys_rename: cannot find %s dirent entry\n", name_src);
+//        KERN_INFO("sys_rename: cannot find %s dirent entry\n", name_src);
         if (dp_src == dp_dest) {
             inode_unlockput(dp_src);
         } else {
@@ -945,7 +945,7 @@ void sys_rename(tf_t * tf) {
     inode_lock(ip_src);
     if (ip_src->dev != dp_src->dev || ip_src->dev != dp_dest->dev) {
         // mv src dest not on the same device
-        KERN_INFO("sys_rename: ip_src dev %d, dp_src %d, dp_dest %d\n", ip_src->dev, dp_src->dev, dp_dest->dev);
+//        KERN_INFO("sys_rename: ip_src dev %d, dp_src %d, dp_dest %d\n", ip_src->dev, dp_src->dev, dp_dest->dev);
         inode_unlockput(ip_src);
         if (dp_src == dp_dest) {
             inode_unlockput(dp_src);
@@ -958,7 +958,7 @@ void sys_rename(tf_t * tf) {
         return;
     }
     if (ip_src->nlink < 1) {
-        KERN_INFO("sys_rename: nlnk <1 %d\n", ip_src->dev, dp_src->dev, dp_dest->dev);
+//        KERN_INFO("sys_rename: nlnk <1 %d\n", ip_src->dev, dp_src->dev, dp_dest->dev);
         inode_unlockput(ip_src);
         if (dp_src == dp_dest) {
             inode_unlockput(dp_src);
@@ -972,7 +972,7 @@ void sys_rename(tf_t * tf) {
     }
     if (dir_link(dp_dest, name_dest, ip_src->inum) < 0){
         // linking fails
-        KERN_INFO("sys_rename linking fails\n");
+//        KERN_INFO("sys_rename linking fails\n");
         inode_unlockput(ip_src);
         if(dp_src == dp_dest){
             inode_unlockput(dp_src);
@@ -989,13 +989,13 @@ void sys_rename(tf_t * tf) {
     memset(&zero, 0, sizeof(struct dirent));
     if (inode_write(dp_src, (char *) &zero, off_src, sizeof(struct dirent)) != sizeof(struct dirent)) {
         // unlinking failed
-        KERN_PANIC("rename: writei");
+//        KERN_PANIC("rename: writei");
     }
     if (ip_src->type == T_DIR) {
-        KERN_INFO("sys_rename: old nlinks src %d dest %d\n", dp_src->nlink, dp_dest->nlink);
+//        KERN_INFO("sys_rename: old nlinks src %d dest %d\n", dp_src->nlink, dp_dest->nlink);
         dp_src->nlink--;
         dp_dest->nlink++;
-        KERN_INFO("sys_rename: new nlinks src %d dest %d\n", dp_src->nlink, dp_dest->nlink);
+//        KERN_INFO("sys_rename: new nlinks src %d dest %d\n", dp_src->nlink, dp_dest->nlink);
         inode_update(dp_src);
         inode_update(dp_dest);
     }
@@ -1009,7 +1009,7 @@ void sys_rename(tf_t * tf) {
         inode_unlockput(dp_dest);
     }
     commit_trans();
-    KERN_INFO("sys_rename success\n");
+//    KERN_INFO("sys_rename success\n");
     syscall_set_errno(tf, E_SUCC);
     return;
 }
