@@ -290,84 +290,6 @@ void shell_rm_r(char *relativePath)
     ASSERT(remove_status == 0);
 }
 
-void shell_copy_file(char *src, char *dest)
-{ // cp
-    int fd_src = open(src, O_RDONLY);
-    if (fd_src < 0)
-    {
-        printf("cp: file does not exist: %s\n", src);
-        return;
-    }
-    struct file_stat stat_src;
-    if (fstat(fd_src, &stat_src) != 0)
-    {
-        printf("cp: cannot read file: %s\n", src);
-        return;
-    }
-    if (stat_src.type != T_FILE)
-    {
-        printf("cp: not a file: %s\n", src);
-        return;
-    }
-
-    int fd_dest = open(dest, O_RDWR | O_CREATE);
-    char buffer[IO_CHUNK_SIZE];
-    size_t bytesRead = 0;
-    while ((bytesRead = read(fd_src, buffer, IO_CHUNK_SIZE)) > 0)
-    {
-        if (write(fd_dest, buffer, bytesRead) <= 0)
-        {
-            printf("cp: cannot write\n");
-            return;
-        }
-    }
-}
-/*
-cp -r a b
-a/hello
-b/a/hello/c
-
-b/a/hello/c
-b/a/hello/hello
-
-b/a/hello/c
-b/hello
- */
-void shell_copy_folder(char *src, char *dest)
-{ // cp -r
-    int fd_src = open(src, O_RDONLY);
-    if (fd_src < 0)
-    {
-        printf("cp: no such file or directory: %s\n", src);
-    }
-
-    struct file_stat stat_src;
-    int fstat_status = fstat(fd_src, &stat_src);
-    if (fstat_status != 0)
-    {
-        close(fd_src);
-        printf("cp: no such file or directory: %s\n", src);
-        return;
-    }
-    if (stat_src.type != T_DIR)
-    {
-        close(fd_src);
-        printf("cp: not a directory: %s\n", src);
-        return;
-    }
-
-    ASSERT(close(fd_src) == 0);
-    int fd_dest = open(dest, O_RDONLY);
-    // if the destination directory already exists
-    if (fd_dest >= 0)
-    {
-    }
-    else
-    {
-        ASSERT(mkdir(dest) == 0);
-    }
-}
-
 void copy(char *src, char *dest)
 {
     int fd_src = open(src, O_RDONLY);
@@ -377,7 +299,7 @@ void copy(char *src, char *dest)
     ASSERT(fstat_src.type == T_FILE || fstat_src.type == T_DIR);
     if (fstat_src.type == T_FILE)
     {
-        printf("src, dest: %s, %s\n",src, dest);
+//        printf("src, dest: %s, %s\n",src, dest);
         char actual_dest[strlen(src) + strlen(dest) + 2];
         strcpy(actual_dest, dest);
         int fd_dest = open(dest, O_RDONLY);
@@ -480,61 +402,6 @@ void copy(char *src, char *dest)
         close(fd_src);
     }
 }
-void copy_old(char *srcPath, char *destPath)
-{
-    int fd_src = open(srcPath, O_RDONLY);
-    int fd_dest = open(destPath, O_RDONLY);
-    ASSERT(fd_src >= 0);
-    ASSERT(fd_dest < 0);
-    struct file_stat fstat_src;
-    ASSERT(fstat(fd_src, &fstat_src) == 0);
-    ASSERT(fstat_src.type == T_FILE || fstat_src.type == T_DIR);
-    if (fstat_src.type == T_FILE)
-    {
-        fd_dest = open(destPath, O_RDWR | O_CREATE);
-        ASSERT(fd_dest >= 0);
-        char buffer[IO_CHUNK_SIZE];
-        size_t bytesRead = 0;
-        while ((bytesRead = read(fd_src, buffer, IO_CHUNK_SIZE)) > 0)
-        {
-            ASSERT(write(fd_dest, buffer, bytesRead) > 0);
-        }
-        ASSERT(close(fd_src) == 0);
-        ASSERT(close(fd_dest) == 0);
-        //        printf("copy: copied %s to %s\n", srcPath, destPath);
-    }
-    else
-    {
-        //        printf("copy: copying dir %s to %s\n", srcPath, destPath);
-        ASSERT(mkdir(destPath) == 0);
-        ASSERT(fstat_src.size % sizeof(struct dirent) == 0);
-        size_t nDirents = fstat_src.size / sizeof(struct dirent);
-        for (size_t i = 0; i < nDirents; i++)
-        {
-            struct dirent cur_dirent;
-
-            ASSERT(read(fd_src, (char *)&cur_dirent, sizeof(struct dirent)) > 0);
-            if (cur_dirent.inum == 0) // inum 0 indicates empty entry
-                break;
-            if (strcmp(cur_dirent.name, ".") == 0 || strcmp(cur_dirent.name, "..") == 0)
-                continue;
-            size_t len_srcPath = strlen(srcPath);
-            size_t len_destPath = strlen(destPath);
-            char childSrcPath[len_srcPath + DIRSIZ + 1];
-            char childDestPath[len_destPath + DIRSIZ + 1];
-            strcpy(childSrcPath, srcPath);
-            strcpy(childDestPath, destPath);
-            childSrcPath[len_srcPath] = '/';
-            childDestPath[len_destPath] = '/';
-            strncpy(&childSrcPath[len_srcPath + 1], cur_dirent.name, DIRSIZ);
-            strncpy(&childDestPath[len_destPath + 1], cur_dirent.name, DIRSIZ);
-            //            printf("copy: recursively copying %s to %s\n", childSrcPath, childDestPath);
-            copy(childSrcPath, childDestPath);
-        }
-        ASSERT(close(fd_src) == 0);
-    }
-}
-
 void shell_cp(char *srcPath, char *destPath)
 {
     int fd_src = open(srcPath, O_RDONLY);
@@ -557,27 +424,10 @@ void shell_cp(char *srcPath, char *destPath)
         printf("cp: not a file: %s\n", srcPath);
         return;
     }
-
-
     ASSERT(close(fd_src) == 0);
-    // printf("hello world\n");
     copy(srcPath, destPath);
 }
 
-/*
- * cp hello hello2  hello -> hello2
- * cp hello hello2  hello -> hello2/hello
- * cp hello .       hello -> hello
- * hello/file1
- * hello/file2
- *
- *
- * hello2/hello
- * hello2/hello/file1
- * hello2/hello/test
- *
- * cp hello hello2
- */
 void shell_cp_r(char *srcPath, char *destPath)
 {
     int fd_src = open(srcPath, O_RDONLY);
@@ -601,12 +451,6 @@ void shell_cp_r(char *srcPath, char *destPath)
         return;
     }
     ASSERT(close(fd_src) == 0);
-    // int fd_dest = open(destPath, O_RDONLY);
-    // if (fd_dest >= 0) {
-    //     ASSERT(close(fd_dest) == 0);
-    //     printf("cp: %s already exists (not copied)\n", destPath);
-    //     return;
-    // }
     copy(srcPath, destPath);
 }
 

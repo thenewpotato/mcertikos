@@ -33,3 +33,44 @@ cd
 cp -r from to
 
 
+
+mkdir from
+cd from
+mkdir one
+echo "hello world" > test
+echo "hello world" > test1
+cd one
+mkdir two
+echo "hello world" > test
+echo "hello world" > test1
+cd two
+mkdir three
+echo "hello world" > test
+echo "hello world" > test1
+cd three
+mkdir four
+echo "hello world" > test
+echo "hello world" > test1
+cd four
+echo "hello world" > test
+echo "hello world" > test1
+cd
+mkdir to
+cd to
+mkdir one
+mkdir test
+cd one
+mkdir two
+mkdir test
+cd two
+mkdir three
+mkdir test
+cd three
+mkdir four
+mkdir test
+cd four
+mkdir test
+cd
+cp -r from to
+
+

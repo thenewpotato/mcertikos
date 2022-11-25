@@ -153,8 +153,8 @@ This section specifies the supported functionality of our shell. Unless otherwis
 - `cd dir` will change directory into the directory specified by `dir`.
 - `cd` with no arguments will change directory to the home/root directory, `/`.
 ### cp
-- `cp src dest` will make a copy of the file `src` and store the copy as `dest`. `src` must be a valid path and must point to a file. `dest` must not already exist. For instance, if our current working directory contains only the file `README`, `cp README COPY` will create a new file named `COPY` in the current working directory whose content is identical to `README`.
-- `cp -r src dest` will recursively copy the folder `src` and store the copy as `dest`. `src` must be a valid path and must point to a directory. `dest` must not already exist.
+- `cp src dest` will make a copy of the file `src` and store the copy as `dest`. `src` must be a valid path and must point to a file. If `dest` does not exist, it will be created. If `dest` exists and is a file, it will be overwritten. If `dest` exists and is a folder, `src` will be copied into the folder as `dest/src`.
+- `cp -r src dest` will recursively copy the folder `src` and store the copy as `dest`. `src` must be a valid path and must point to a directory. If `dest` already exists, the content of `src` will be recursively copied into `dest`, with any overlapping files or subdirectories in `dest` being clobbered.
 ### mv
 - `mv src dest` will rename the file `src` as `dest` (alternatively, the operation can be conceived as moving the file `src` to `dest`). `src` must be a valid path and must point to a file. `dest` must not already exist.
 ### rm
