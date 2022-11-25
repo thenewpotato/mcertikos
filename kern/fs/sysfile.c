@@ -287,7 +287,6 @@ void sys_fstat(tf_t *tf)
         syscall_set_errno(tf, E_BADF);
         return;
     }
-
     struct file_stat fs;
     fs.type = f->ip->type;
     fs.dev = f->ip->dev;
