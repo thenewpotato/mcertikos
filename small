@@ -1,1 +1,35 @@
-hi
+mkdir from
+cd from
+mkdir one
+echo "hello world" > test
+cd one
+mkdir two
+echo "hello world" > test
+cd two
+mkdir three
+echo "hello world" > test
+cd three
+mkdir four
+echo "hello world" > test
+cd four
+echo "hello world" > test
+cd
+mkdir to
+cd to
+mkdir one
+echo "goodbye world" > test
+cd one
+mkdir two
+echo "goodbye world" > test
+cd two
+mkdir three
+echo "goodbye world" > test
+cd three
+mkdir four
+echo "goodbye world" > test
+cd four
+echo "goodbye world" > test
+cd
+cp -r from to
+
+

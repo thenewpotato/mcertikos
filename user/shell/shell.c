@@ -6,10 +6,10 @@
 #include <gcc.h>
 
 #define exit(...) return __VA_ARGS__
-#define T_DIR 1             // Directory
-#define T_FILE 2            // File
-#define T_DEV 3             // Device
-#define IO_CHUNK_SIZE 512   // Reading and writing in chunks of 512 bytes
+#define T_DIR 1           // Directory
+#define T_FILE 2          // File
+#define T_DEV 3           // Device
+#define IO_CHUNK_SIZE 512 // Reading and writing in chunks of 512 bytes
 
 // Definition of dirent copied over from kernel, needed by ls to iterate over dirents
 #define DIRSIZ 14
@@ -58,7 +58,8 @@ void shell_ls(char *relativePath)
 void shell_mkdir(char *name)
 {
     int dirfd = open(name, O_RDONLY);
-    if (dirfd >= 0) {
+    if (dirfd >= 0)
+    {
         ASSERT(close(dirfd) == 0);
         printf("mkdir: %s already exists\n", name);
         return;
@@ -130,25 +131,27 @@ void shell_mv(char *src, char *dst)
     // NOTE: current mv syntax is NOT regular shell syntax, second argument must be file path
     int src_fd;
     int dst_fd;
-//    int src_fstat_status;
-//    printf("shell_mv: enter(src=%s, dst=%s)\n", src, dst);
+    //    int src_fstat_status;
+    //    printf("shell_mv: enter(src=%s, dst=%s)\n", src, dst);
 
     src_fd = open(src, O_RDONLY);
-    if(src_fd < 0){
+    if (src_fd < 0)
+    {
         printf("mv: no such file or directory: %s\n", src);
         return;
     }
-//    struct file_stat source_stat;
-//    src_fstat_status = fstat(src_fd, &source_stat);
-//    ASSERT(src_fstat_status == 0);
-//    if(source_stat.type != T_FILE){
-//        printf("mv: source %s is not a file\n", src);
-//        close(src_fd);
-//        return;
-//    }
+    //    struct file_stat source_stat;
+    //    src_fstat_status = fstat(src_fd, &source_stat);
+    //    ASSERT(src_fstat_status == 0);
+    //    if(source_stat.type != T_FILE){
+    //        printf("mv: source %s is not a file\n", src);
+    //        close(src_fd);
+    //        return;
+    //    }
 
     dst_fd = open(dst, O_RDONLY);
-    if(dst_fd >= 0){
+    if (dst_fd >= 0)
+    {
         printf("mv: destination already exists: %s\n", dst);
         close(src_fd);
         close(dst_fd);
@@ -156,7 +159,8 @@ void shell_mv(char *src, char *dst)
     }
     close(src_fd);
 
-    if (rename(src ,dst) != 0) {
+    if (rename(src, dst) != 0)
+    {
         printf("mv: cannot move (nothing moved)\n");
         return;
     }
@@ -185,12 +189,12 @@ int remove(char *relativePath)
         int unlinkStatus = unlink(relativePath);
 
         ASSERT(unlinkStatus == 0);
-//        printf("remove: removed file %s\n", relativePath);
+        //        printf("remove: removed file %s\n", relativePath);
     }
     else
     {
         int chdir_status = chdir(relativePath);
-//        printf("remove: removing dir %s\n", relativePath);
+        //        printf("remove: removing dir %s\n", relativePath);
 
         ASSERT(chdir_status == 0);
         ASSERT(fstat_root.size % sizeof(struct dirent) == 0);
@@ -206,7 +210,7 @@ int remove(char *relativePath)
                 break;
             if (strcmp(cur_dirent.name, ".") == 0 || strcmp(cur_dirent.name, "..") == 0)
                 continue;
-//            printf("remove: recursively removing %s\n", cur_dirent.name);
+            //            printf("remove: recursively removing %s\n", cur_dirent.name);
             int recursive_remove_status = remove(cur_dirent.name);
             ASSERT(recursive_remove_status == 0);
         }
@@ -219,7 +223,7 @@ int remove(char *relativePath)
         int unlinkStatus = unlink(relativePath);
 
         ASSERT(unlinkStatus == 0);
-//        printf("remove: removed dir %s\n", relativePath);
+        //        printf("remove: removed dir %s\n", relativePath);
     }
     return 0;
 }
@@ -274,7 +278,8 @@ void shell_rm_r(char *relativePath)
         printf("rm: not a directory: %s\n", relativePath);
         return;
     }
-    if (strcmp(relativePath, ".") == 0 || strcmp(relativePath, "..") == 0) {
+    if (strcmp(relativePath, ".") == 0 || strcmp(relativePath, "..") == 0)
+    {
         close(fd);
         printf("rm: cannot remove %s\n", relativePath);
         return;
@@ -314,18 +319,22 @@ Try to open dst.
   If dst exists and is a directory, copy files and subdirectories under src into dst;
   If dst does not exist, try to create it with mkdir. If this fails, return error, otherwise proceed a
  */
-void shell_copy_file(char *src, char *dest) { // cp
+void shell_copy_file(char *src, char *dest)
+{ // cp
     int fd_src = open(src, O_RDONLY);
-    if (fd_src < 0) {
+    if (fd_src < 0)
+    {
         printf("cp: file does not exist: %s\n", src);
         return;
     }
     struct file_stat stat_src;
-    if (fstat(fd_src, &stat_src) != 0) {
+    if (fstat(fd_src, &stat_src) != 0)
+    {
         printf("cp: cannot read file: %s\n", src);
         return;
     }
-    if (stat_src.type != T_FILE) {
+    if (stat_src.type != T_FILE)
+    {
         printf("cp: not a file: %s\n", src);
         return;
     }
@@ -335,7 +344,8 @@ void shell_copy_file(char *src, char *dest) { // cp
     size_t bytesRead = 0;
     while ((bytesRead = read(fd_src, buffer, IO_CHUNK_SIZE)) > 0)
     {
-        if (write(fd_dest, buffer, bytesRead) <= 0) {
+        if (write(fd_dest, buffer, bytesRead) <= 0)
+        {
             printf("cp: cannot write\n");
             return;
         }
@@ -352,20 +362,24 @@ b/a/hello/hello
 b/a/hello/c
 b/hello
  */
-void shell_copy_folder(char *src, char *dest) { // cp -r
+void shell_copy_folder(char *src, char *dest)
+{ // cp -r
     int fd_src = open(src, O_RDONLY);
-    if(fd_src < 0){
+    if (fd_src < 0)
+    {
         printf("cp: no such file or directory: %s\n", src);
     }
 
     struct file_stat stat_src;
     int fstat_status = fstat(fd_src, &stat_src);
-    if(fstat_status != 0){
+    if (fstat_status != 0)
+    {
         close(fd_src);
         printf("cp: no such file or directory: %s\n", src);
         return;
     }
-    if(stat_src.type != T_DIR){
+    if (stat_src.type != T_DIR)
+    {
         close(fd_src);
         printf("cp: not a directory: %s\n", src);
         return;
@@ -374,38 +388,45 @@ void shell_copy_folder(char *src, char *dest) { // cp -r
     ASSERT(close(fd_src) == 0);
     int fd_dest = open(dest, O_RDONLY);
     // if the destination directory already exists
-    if(fd_dest >= 0){
-
+    if (fd_dest >= 0)
+    {
     }
-    else{
+    else
+    {
         ASSERT(mkdir(dest) == 0);
-
     }
 }
 
-
-void copy(char *src, char *dest) {
+void copy(char *src, char *dest)
+{
     int fd_src = open(src, O_RDONLY);
     ASSERT(fd_src >= 0);
     struct file_stat fstat_src;
     ASSERT(fstat(fd_src, &fstat_src) == 0);
     ASSERT(fstat_src.type == T_FILE || fstat_src.type == T_DIR);
-    if (fstat_src.type == T_FILE) {
+    if (fstat_src.type == T_FILE)
+    {
+        printf("src, dest: %s, %s\n",src, dest);
         char actual_dest[strlen(src) + strlen(dest) + 2];
         strcpy(actual_dest, dest);
         int fd_dest = open(dest, O_RDONLY);
         // if the destination file already exists
-        if (fd_dest >= 0) {
+        if (fd_dest >= 0)
+        {
             struct file_stat stat_dest;
             fstat(fd_dest, &stat_dest);
-            if (stat_dest.type == T_DIR) {
+            if (stat_dest.type == T_DIR)
+            {
                 actual_dest[strlen(dest)] = '/';
-                strcpy(&actual_dest[strlen(src) + 1], src);
+                strcpy(&actual_dest[strlen(dest) + 1], src);
                 actual_dest[strlen(dest) + strlen(src) + 1] = '\0';
             }
         }
+        
+        remove(dest);
         fd_dest = open(actual_dest, O_RDWR | O_CREATE);
-        if (fd_dest < 0) {
+        if (fd_dest < 0)
+        {
             printf("cp: failed to create file %s\n", dest);
             return;
         }
@@ -413,39 +434,58 @@ void copy(char *src, char *dest) {
         size_t bytesRead = 0;
         while ((bytesRead = read(fd_src, buffer, IO_CHUNK_SIZE)) > 0)
         {
-            if (write(fd_dest, buffer, bytesRead) <= 0) {
+            if (write(fd_dest, buffer, bytesRead) <= 0)
+            {
                 printf("cp: failed to write\n");
                 return;
             }
         }
         close(fd_src);
         close(fd_dest);
-    } else {
+    }
+    else
+    {
         int fd_dest = open(dest, O_RDONLY);
-        if (fd_dest >= 0) {
+        if (fd_dest >= 0)
+        {
             struct file_stat stat_dest;
             fstat(fd_dest, &stat_dest);
-            if (stat_dest.type == T_FILE) {
+            if (stat_dest.type == T_FILE)
+            {
                 printf("cp: is a file: %s\n", dest);
-            } else if (stat_dest.type == T_DIR) {
+                return;
+            }
+            else if (stat_dest.type == T_DIR)
+            {
                 // DO NOTHING!
-            } else {
+            }
+            else
+            {
                 printf("cp: is not a file or directory: %s\n", dest);
+                return;
             }
             close(fd_dest);
-        } else {
-            if (mkdir(dest) != 0) {
+        }
+        else
+        {
+            if (mkdir(dest) != 0)
+            {
                 printf("cp: cannot create dir: %s\n", dest);
+                return; 
             }
         }
-        if (fstat_src.size % sizeof(struct dirent) != 0) {
+        if (fstat_src.size % sizeof(struct dirent) != 0)
+        {
             printf("cp: src directory is corrupt: %s\n", src);
+            return;
         }
         size_t nDirents = fstat_src.size / sizeof(struct dirent);
         for (size_t i = 0; i < nDirents; i++)
         {
             struct dirent cur_dirent;
-            ASSERT(read(fd_src, (char *)&cur_dirent, sizeof(struct dirent)) > 0);
+            if(read(fd_src, (char *)&cur_dirent, sizeof(struct dirent)) <= 0){
+                printf("cp: read fail");
+            };
             if (cur_dirent.inum == 0) // inum 0 indicates empty entry
                 break;
             if (strcmp(cur_dirent.name, ".") == 0 || strcmp(cur_dirent.name, "..") == 0)
@@ -474,7 +514,8 @@ void copy_old(char *srcPath, char *destPath)
     struct file_stat fstat_src;
     ASSERT(fstat(fd_src, &fstat_src) == 0);
     ASSERT(fstat_src.type == T_FILE || fstat_src.type == T_DIR);
-    if (fstat_src.type == T_FILE) {
+    if (fstat_src.type == T_FILE)
+    {
         fd_dest = open(destPath, O_RDWR | O_CREATE);
         ASSERT(fd_dest >= 0);
         char buffer[IO_CHUNK_SIZE];
@@ -485,11 +526,11 @@ void copy_old(char *srcPath, char *destPath)
         }
         ASSERT(close(fd_src) == 0);
         ASSERT(close(fd_dest) == 0);
-//        printf("copy: copied %s to %s\n", srcPath, destPath);
+        //        printf("copy: copied %s to %s\n", srcPath, destPath);
     }
     else
     {
-//        printf("copy: copying dir %s to %s\n", srcPath, destPath);
+        //        printf("copy: copying dir %s to %s\n", srcPath, destPath);
         ASSERT(mkdir(destPath) == 0);
         ASSERT(fstat_src.size % sizeof(struct dirent) == 0);
         size_t nDirents = fstat_src.size / sizeof(struct dirent);
@@ -512,7 +553,7 @@ void copy_old(char *srcPath, char *destPath)
             childDestPath[len_destPath] = '/';
             strncpy(&childSrcPath[len_srcPath + 1], cur_dirent.name, DIRSIZ);
             strncpy(&childDestPath[len_destPath + 1], cur_dirent.name, DIRSIZ);
-//            printf("copy: recursively copying %s to %s\n", childSrcPath, childDestPath);
+            //            printf("copy: recursively copying %s to %s\n", childSrcPath, childDestPath);
             copy(childSrcPath, childDestPath);
         }
         ASSERT(close(fd_src) == 0);
@@ -541,14 +582,10 @@ void shell_cp(char *srcPath, char *destPath)
         printf("cp: not a file: %s\n", srcPath);
         return;
     }
+
+
     ASSERT(close(fd_src) == 0);
-    int fd_dest = open(destPath, O_RDONLY);
-    if (fd_dest >= 0)
-    {
-        ASSERT(close(fd_dest) == 0);
-        printf("cp: %s already exists (not copied)\n", destPath);
-        return;
-    }
+    // printf("hello world\n");
     copy(srcPath, destPath);
 }
 
@@ -589,24 +626,27 @@ void shell_cp_r(char *srcPath, char *destPath)
         return;
     }
     ASSERT(close(fd_src) == 0);
-    int fd_dest = open(destPath, O_RDONLY);
-    if (fd_dest >= 0) {
-        ASSERT(close(fd_dest) == 0);
-        printf("cp: %s already exists (not copied)\n", destPath);
-        return;
-    }
+    // int fd_dest = open(destPath, O_RDONLY);
+    // if (fd_dest >= 0) {
+    //     ASSERT(close(fd_dest) == 0);
+    //     printf("cp: %s already exists (not copied)\n", destPath);
+    //     return;
+    // }
     copy(srcPath, destPath);
 }
 
-void shell_echo(char *text, char *relativePath) {
+void shell_echo(char *text, char *relativePath)
+{
     int fd = open(relativePath, O_RDONLY);
-    if (fd >= 0) {
+    if (fd >= 0)
+    {
         // If the file already exists, first check that it is not a directory
         // then remove it in order to wipe out its contents
         struct file_stat stat;
         int fstat_status = fstat(fd, &stat);
         ASSERT(fstat_status == 0);
-        if (stat.type != T_FILE) {
+        if (stat.type != T_FILE)
+        {
             printf("echo: not a file: %s\n", relativePath);
             ASSERT(close(fd) == 0);
             return;
@@ -615,21 +655,25 @@ void shell_echo(char *text, char *relativePath) {
         ASSERT(remove(relativePath) == 0);
     }
     fd = open(relativePath, O_RDWR | O_CREATE);
-    if (fd < 0) {
+    if (fd < 0)
+    {
         printf("echo: no such file: %s\n", relativePath);
         return;
     }
     size_t len_text = strlen(text);
-    for (size_t i = 0; i < len_text; i += IO_CHUNK_SIZE) {
+    for (size_t i = 0; i < len_text; i += IO_CHUNK_SIZE)
+    {
         int writeStatus = write(fd, &text[i], MIN(len_text - i, IO_CHUNK_SIZE));
-        if (writeStatus < 0) {
+        if (writeStatus < 0)
+        {
             printf("echo: write failed\n");
             ASSERT(close(fd) == 0);
             return;
         }
     }
     int writeStatus = write(fd, "\n", 1);
-    if (writeStatus < 1) {
+    if (writeStatus < 1)
+    {
         printf("echo: write failed\n");
         ASSERT(close(fd) == 0);
         return;
@@ -640,12 +684,14 @@ void shell_echo(char *text, char *relativePath) {
 void shell_echo_append(char *text, char *relativePath)
 {
     int fd = open(relativePath, O_RDONLY);
-    if (fd >= 0) {
+    if (fd >= 0)
+    {
         // If the file already exists, check that it is not a directory
         struct file_stat stat;
         int fstat_status = fstat(fd, &stat);
         ASSERT(fstat_status == 0);
-        if (stat.type != T_FILE) {
+        if (stat.type != T_FILE)
+        {
             printf("echo: not a file: %s\n", relativePath);
             ASSERT(close(fd) == 0);
             return;
@@ -702,7 +748,7 @@ typedef struct
 
 argument findNextArg(const char *command)
 {
-//    printf("find %s\n", command);
+    //    printf("find %s\n", command);
     argument r;
     size_t cur = 0;
     char endChar = ' ';
@@ -773,12 +819,12 @@ void test_backend()
 {
     shell_mkdir("dir1");
     shell_mkdir("dir1/dir2");
-//    shell_cp("README", "dir1/dir2/COPY");
+    //    shell_cp("README", "dir1/dir2/COPY");
     shell_cd("dir1/dir2");
-//    shell_echo("hello", "COPY");
+    //    shell_echo("hello", "COPY");
     int fd = open("COPY", O_RDWR | O_CREATE);
     printf("%d\n", fd);
-//    close(fd);
+    //    close(fd);
     shell_pwd();
 }
 
@@ -802,8 +848,10 @@ void test_cwd()
     }
     printf("user side cwd succeeded, path=%s\n", buffer);
 }
-void test_nested() {
-    for (int i = 0; i < 100; i++) {
+void test_nested()
+{
+    for (int i = 0; i < 100; i++)
+    {
         shell_mkdir("test");
         shell_cd("test");
     }
@@ -835,7 +883,8 @@ void test_nested() {
             continue;                                     \
         }                                                 \
     }
-void shell_loop() {
+void shell_loop()
+{
     char command[1024];
     while (sys_readline("$ ", command) == 0)
     {
@@ -1004,7 +1053,8 @@ void shell_loop() {
                 printf("usage: echo \"text\" > filename OR echo \"text\" >> filename");
             }
         }
-        else if(ARG_CMP(name, "touch") == 0){
+        else if (ARG_CMP(name, "touch") == 0)
+        {
             argument file_name = findNextArg(name.nextStart);
             CHECK_ARG(file_name, "usage: touch filename");
             char file_name_copy[file_name.len + 1];
@@ -1023,8 +1073,8 @@ void shell_loop() {
 }
 int main(int argc, char *argv[])
 {
-//    test_backend();
-//    test_nested();
+    //    test_backend();
+    //    test_nested();
     shell_loop();
     return 0;
 }
