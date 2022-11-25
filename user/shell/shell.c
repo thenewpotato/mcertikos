@@ -290,35 +290,6 @@ void shell_rm_r(char *relativePath)
     ASSERT(remove_status == 0);
 }
 
-/*
- * copy - dest doesn't exist
- * - create new file and write to it
- * copy - dest exists and is a file
- * - delete the old file, create new file and write to it
- * copy - dest exists and is a folder
- * - call copy on new folder
- * copy r - dest doesn't exist
- * - mkdir, call copy on each directory entry
- * copy r - dest exists
- * - call copy on each directory entry
-/*
-1. Non-recursive case
-If src does not exist, return error.
-If src is a directory, return error.
-Try to open dst with O_CREATE.
-  If dst exists and is a file, it will be overwritten;
-  If dst does not exist, but its parent directory exists, then O_CREATE will create the dst for us;
-  If dst exists and is a directory, create new file under dst with same name as src;
-  If dst does not exist and O_CREATE cannot create the file, return error.
-
-2. Recursive case
-If src does not exist, return error.
-If src is not a directory, return error.
-Try to open dst.
-  If dst exists and is a file, return error;
-  If dst exists and is a directory, copy files and subdirectories under src into dst;
-  If dst does not exist, try to create it with mkdir. If this fails, return error, otherwise proceed a
- */
 void shell_copy_file(char *src, char *dest)
 { // cp
     int fd_src = open(src, O_RDONLY);
@@ -420,10 +391,14 @@ void copy(char *src, char *dest)
                 actual_dest[strlen(dest)] = '/';
                 strcpy(&actual_dest[strlen(dest) + 1], src);
                 actual_dest[strlen(dest) + strlen(src) + 1] = '\0';
+            } else if (stat_dest.type == T_FILE) {
+                remove(dest);
+            } else {
+                printf("cp: not a file or directory: %s\n", dest);
+                return;
             }
         }
         
-        remove(dest);
         fd_dest = open(actual_dest, O_RDWR | O_CREATE);
         if (fd_dest < 0)
         {
@@ -857,6 +832,82 @@ void test_nested()
     }
     shell_pwd();
 }
+void test_cp1() {
+    printf("=== CP TEST 1 ===\n");
+    shell_mkdir("dir2");
+    shell_echo("hello world!", "dir2/HELLO");
+    shell_mkdir("dir2/dir2a");
+    shell_echo("goodbye world!", "dir2/dir2a/GOODBYE");
+    shell_mkdir("dir2copy");
+    shell_echo("goodbye world!", "dir2copy/HELLO");
+    shell_echo("bonus content!", "dir2copy/EXTRA");
+
+    printf("-- BEFORE CP --\n");
+    printf("% ls /\n");
+    shell_ls("/");
+    printf("% ls dir2\n");
+    shell_ls("dir2");
+    printf("% ls dir2/dir2a\n");
+    shell_ls("dir2/dir2a");
+    printf("% cat dir2/HELLO\n");
+    shell_cat("dir2/HELLO");
+    printf("% cat dir2/dir2a/GOODBYE\n");
+    shell_cat("dir2/dir2a/GOODBYE");
+    printf("% ls dir2copy\n");
+    shell_ls("dir2copy");
+    printf("% cat dir2copy/HELLO\n");
+    shell_cat("dir2copy/HELLO");
+    printf("% cat dir2copy/EXTRA\n");
+    shell_cat("dir2copy/EXTRA");
+
+    shell_cp_r("dir2", "dir2copy");
+
+    printf("-- AFTER CP --\n");
+    printf("% ls /\n");
+    shell_ls("/");
+    printf("% ls dir2\n");
+    shell_ls("dir2");
+    printf("% ls dir2/dir2a\n");
+    shell_ls("dir2/dir2a");
+    printf("% cat dir2/HELLO\n");
+    shell_cat("dir2/HELLO");
+    printf("% cat dir2/dir2a/GOODBYE\n");
+    shell_cat("dir2/dir2a/GOODBYE");
+    printf("% ls dir2copy\n");
+    shell_ls("dir2copy");
+    printf("% cat dir2copy/HELLO\n");
+    shell_cat("dir2copy/HELLO");
+    printf("% cat dir2copy/EXTRA\n");
+    shell_cat("dir2copy/EXTRA");
+    printf("% ls dir2copy/dir2a\n");
+    shell_ls("dir2copy/dir2a");
+    printf("% cat dir2copy/dir2a/GOODBYE\n");
+    shell_cat("dir2copy/dir2a/GOODBYE");
+    printf("=== END TEST ===\n");
+}
+void test_cp2() {
+    printf("=== CP TEST 2 ===\n");
+
+    shell_echo("goodbye world!", "HELLO");
+
+    printf("-- BEFORE CP --\n");
+    printf("% ls /\n");
+    shell_ls("/");
+    printf("% cat HELLO\n");
+    shell_cat("HELLO");
+
+    shell_cp("HELLO", "HELLOcopy");
+
+    printf("-- AFTER CP --\n");
+    printf("% ls /\n");
+    shell_ls("/");
+    printf("% cat HELLO\n");
+    shell_cat("HELLO");
+    printf("% cat HELLOcopy\n");
+    shell_cat("HELLOcopy");
+
+    printf("=== END TEST ===\n");
+}
 
 #define ARG_CMP(parsed_name, target_name) strncmp((parsed_name).start, target_name, MAX((parsed_name).len, strlen(target_name)))
 #define COPY_ARG(arg, buffer)                    \
@@ -1073,8 +1124,10 @@ void shell_loop()
 }
 int main(int argc, char *argv[])
 {
-    //    test_backend();
-    //    test_nested();
+//    test_backend();
+//    test_nested();
+//    test_cp2();
+//    test_cp1();
     shell_loop();
     return 0;
 }
