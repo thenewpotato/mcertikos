@@ -141,6 +141,7 @@ uint32_t rcr4(void);
 uint8_t inb(int port);
 void insl(int port, void *addr, int cnt);
 void outb(int port, uint8_t data);
+void outw(int port, uint16_t data);
 void outsw(int port, const void *addr, int cnt);
 void outsl(int port, const void *addr, int cnt);
 

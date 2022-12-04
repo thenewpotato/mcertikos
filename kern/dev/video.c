@@ -39,6 +39,27 @@ void video_init(void)
     terminal.crt_buf = (uint16_t *) cp;
     terminal.crt_pos = pos;
     terminal.active_console = 0;
+
+    outw(0x3ce, 0x5);
+    outw(0x3c4, 0x102);
+    unsigned char* pixel = (unsigned char*) VGA_BUF;
+    *pixel = 0b00000000;
+    outw(0x3c4, 0xf02);
+
+    outw(0x3ce, 0x5);
+    outw(0x3c4, 0x202);
+    *pixel = 0b00000000;
+    outw(0x3c4, 0xf02);
+
+    outw(0x3ce, 0x5);
+    outw(0x3c4, 0x402);
+    *pixel = 0b11111111;
+    outw(0x3c4, 0xf02);
+
+    outw(0x3ce, 0x5);
+    outw(0x3c4, 0x802);
+    *pixel = 0b00000000;
+    outw(0x3c4, 0xf02);
 }
 
 void video_putc(int c)

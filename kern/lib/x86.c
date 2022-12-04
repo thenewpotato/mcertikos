@@ -241,6 +241,11 @@ gcc_inline void outb(int port, uint8_t data)
     __asm __volatile ("outb %0,%w1" :: "a" (data), "d" (port));
 }
 
+gcc_inline void outw(int port, uint16_t data)
+{
+    __asm __volatile ("outw %0,%w1" :: "a" (data), "d" (port));
+}
+
 gcc_inline void outsw(int port, const void *addr, int cnt)
 {
     __asm __volatile ("cld\n\trepne\n\toutsw"

@@ -46,7 +46,7 @@ start:
 
 	/* set to normal (80x25 text) video mode */
 set_video_mode:
-	movw	$0x03, %ax
+	movw	$0x12, %ax
 	int	$0x10
 
 	/* print starting message */

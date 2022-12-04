@@ -14,6 +14,8 @@
 #define CGA_BASE  0x3D4
 #define CGA_BUF   0xB8000
 
+#define VGA_BUF   0xA0000
+
 /* VGA data register ports */
 #define VGA_CRT_DC  0x3D5  /* CRT Controller Data Register - color emulation */
 #define VGA_CRT_DM  0x3B5  /* CRT Controller Data Register - mono emulation */
