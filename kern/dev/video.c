@@ -6,9 +6,53 @@
 #include <lib/debug.h>
 
 #include "video.h"
+#include "font8x8_basic.h"
 
 static unsigned addr_6845;
 static struct video terminal;
+
+void draw_pixels(unsigned int row, unsigned int col, unsigned char bitmap, unsigned char color) {
+    KERN_ASSERT(col % 8 == 0);
+    size_t bit_position = VGA_BUF * 8 + row * VGA_PIXELS_PER_ROW + col;
+    unsigned char *byte = (unsigned char *) (bit_position / 8);
+    unsigned char color_0 = (color & 0b00000001) != 0; // bit 0 of color
+    unsigned char color_1 = (color & 0b00000010) != 0; // bit 1 of color
+    unsigned char color_2 = (color & 0b00000100) != 0; // bit 2 of color
+    unsigned char color_3 = (color & 0b00001000) != 0; // bit 3 of color
+
+    // set plane 0 to bit 0 of color
+    outw(0x3ce, 0x5);
+    outw(0x3c4, 0x102);
+    *byte = color_0 ? bitmap : 0;
+    outw(0x3c4, 0xf02);
+
+    // set plane 1 to bit 1 of color
+    outw(0x3ce, 0x5);
+    outw(0x3c4, 0x202);
+    *byte = color_1 ? bitmap : 0;
+    outw(0x3c4, 0xf02);
+
+    // set plane 2 to bit 2 of color
+    outw(0x3ce, 0x5);
+    outw(0x3c4, 0x402);
+    *byte = color_2 ? bitmap : 0;
+    outw(0x3c4, 0xf02);
+
+    // set plane 3 to bit 3 of color
+    outw(0x3ce, 0x5);
+    outw(0x3c4, 0x802);
+    *byte = color_3 ? bitmap : 0;
+    outw(0x3c4, 0xf02);
+}
+
+void draw_char(int char_row, int char_col, int c) {
+    // specifies the location of the top-left pixel of the char
+    int pixel_row = char_row * 8;
+    int pixel_col = char_col * 8;
+    for (int i = 0; i < 8; i++) {
+        draw_pixels(pixel_row + i, pixel_col, font8x8_basic[c][i], 0xf);
+    }
+}
 
 void video_init(void)
 {
@@ -40,73 +84,14 @@ void video_init(void)
     terminal.crt_pos = pos;
     terminal.active_console = 0;
 
-    outw(0x3ce, 0x5);
-    outw(0x3c4, 0x102);
-    unsigned char* pixel = (unsigned char*) VGA_BUF;
-    *pixel = 0b00000000;
-    outw(0x3c4, 0xf02);
-
-    outw(0x3ce, 0x5);
-    outw(0x3c4, 0x202);
-    *pixel = 0b00000000;
-    outw(0x3c4, 0xf02);
-
-    outw(0x3ce, 0x5);
-    outw(0x3c4, 0x402);
-    *pixel = 0b11111111;
-    outw(0x3c4, 0xf02);
-
-    outw(0x3ce, 0x5);
-    outw(0x3c4, 0x802);
-    *pixel = 0b00000000;
-    outw(0x3c4, 0xf02);
+    draw_char(0, 0, 'A');
 }
+
+
 
 void video_putc(int c)
 {
-    // if no attribute given, then use black on white
-    if (!(c & ~0xFF))
-        c |= 0x0700;
 
-    switch (c & 0xff) {
-    case '\b':
-        if (terminal.crt_pos > 0) {
-            terminal.crt_pos--;
-            terminal.crt_buf[terminal.crt_pos] = (c & ~0xff) | ' ';
-        }
-        break;
-    case '\n':
-        terminal.crt_pos += CRT_COLS;
-        /* fallthru */
-    case '\r':
-        terminal.crt_pos -= (terminal.crt_pos % CRT_COLS);
-        break;
-    case '\t':
-        video_putc(' ');
-        video_putc(' ');
-        video_putc(' ');
-        video_putc(' ');
-        video_putc(' ');
-        break;
-    default:
-        terminal.crt_buf[terminal.crt_pos++] = c;  /* write the character */
-        break;
-    }
-
-    if (terminal.crt_pos >= CRT_SIZE) {
-        int i;
-        memmove(terminal.crt_buf, terminal.crt_buf + CRT_COLS,
-                (CRT_SIZE - CRT_COLS) * sizeof(uint16_t));
-        for (i = CRT_SIZE - CRT_COLS; i < CRT_SIZE; i++)
-            terminal.crt_buf[i] = 0x0700 | ' ';
-        terminal.crt_pos -= CRT_COLS;
-    }
-
-    /* move that little blinky thing */
-    outb(addr_6845, 14);
-    outb(addr_6845 + 1, terminal.crt_pos >> 8);
-    outb(addr_6845, 15);
-    outb(addr_6845 + 1, terminal.crt_pos);
 }
 
 void video_set_cursor(int x, int y)

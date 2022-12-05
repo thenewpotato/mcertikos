@@ -21,6 +21,7 @@ KERN_SRCFILES += $(KERN_DIR)/dev/disk/ioapic.c
 KERN_SRCFILES += $(KERN_DIR)/dev/disk/picirq.c
 KERN_SRCFILES += $(KERN_DIR)/dev/disk/ide.c
 KERN_SRCFILES += $(KERN_DIR)/dev/kvm.c
+KERN_SRCFILES += $(KERN_DIR)/dev/font8x8_basic.c
 
 $(KERN_OBJDIR)/dev/%.o: $(KERN_DIR)/dev/%.c
 	@echo + cc[KERN/dev] $<

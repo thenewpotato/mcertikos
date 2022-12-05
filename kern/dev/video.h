@@ -15,6 +15,10 @@
 #define CGA_BUF   0xB8000
 
 #define VGA_BUF   0xA0000
+#define VGA_PIXELS_PER_ROW  640
+#define VGA_PIXELS_PER_COL  480
+#define VGA_CHARS_PER_ROW   (VGA_PIXELS_PER_ROW / 8)
+#define VGA_CHARS_PER_COL   (VGA_PIXELS_PER_COL / 8)
 
 /* VGA data register ports */
 #define VGA_CRT_DC  0x3D5  /* CRT Controller Data Register - color emulation */
