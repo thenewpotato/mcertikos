@@ -84,7 +84,7 @@ void video_init(void)
     terminal.crt_pos = pos;
     terminal.active_console = 0;
 
-    draw_char(0, 0, 'A');
+    //draw_char(0, 0, 'A');
 }
 
 

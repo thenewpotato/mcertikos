@@ -7,6 +7,7 @@
 #include "console.h"
 #include "serial.h"
 #include "keyboard.h"
+#include "vga.h"
 
 #define BUFLEN 1024
 static char linebuf[BUFLEN];
@@ -23,6 +24,7 @@ void cons_init()
     memset(&cons, 0x0, sizeof(cons));
     serial_init();
     video_init();
+    vga_init();
     spinlock_init(&cons_lk);
 }
 
@@ -68,6 +70,7 @@ void cons_putc(char c)
 {
     serial_putc(c);
     video_putc(c);
+    vga_putc(c);
 }
 
 char getchar(void)
