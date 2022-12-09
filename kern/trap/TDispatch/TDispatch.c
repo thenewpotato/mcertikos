@@ -101,6 +101,12 @@ void syscall_dispatch(tf_t *tf)
     case SYS_rename:
         sys_rename(tf);
         break;
+    case SYS_draw:
+        sys_draw(tf);
+        break;
+    case SYS_setvideo:
+        sys_setvideo(tf);
+        break;
 
     default:
         syscall_set_errno(tf, E_INVAL_CALLNR);

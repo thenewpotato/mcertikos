@@ -958,6 +958,24 @@ void shell_loop()
             CHECK_ARG_LIMIT(file_name, "usage: touch filename");
             shell_touch(file_name_copy);
         }
+        else if (ARG_CMP(name, "pong") == 0)
+        {
+            CHECK_ARG_LIMIT(name, "usage: pong");
+            struct rect_loc loc;
+            loc.width = 8;
+            loc.height = 16;
+            loc.row_start = 400;
+            loc.col_start = 400;
+            char bitmap[16];
+            memset(bitmap, 0b11111111, 16);
+            sys_setvideo(VGA_MODE_VIDEO);
+            sys_draw(&loc, bitmap, VGA_COLOR_MAGENTA);
+        }
+        else if (ARG_CMP(name, "ping") == 0)
+        {
+            CHECK_ARG_LIMIT(name, "usage: ping");
+            sys_setvideo(VGA_MODE_TERMINAL);
+        }
         else
         {
             char name_copy[name.len + 1];

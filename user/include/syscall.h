@@ -9,6 +9,7 @@
 #include <types.h>
 #include <x86.h>
 #include <file.h>
+#include <vga.h>
 
 static gcc_inline void sys_puts(const char *s, size_t len)
 {
@@ -239,6 +240,33 @@ static gcc_inline int sys_rename(char *src, char *dst) {
               "d"(src_length),
               "S"(dst_length)
             : "cc", "memory");
+    return errno ? -1 : 0;
+}
+
+static gcc_inline int sys_draw(struct rect_loc* loc, const char* bitmap_rect, unsigned char color) {
+    int errno, ret;
+
+    asm volatile("int %2"
+            : "=a"(errno), "=b"(ret)
+            : "i"(T_SYSCALL),
+              "a"(SYS_draw),
+              "b"(loc),
+              "c"(bitmap_rect),
+              "d"(color)
+            : "cc", "memory");
+    return errno ? -1 : 0;
+}
+
+static gcc_inline int sys_setvideo(unsigned int vga_mode)
+{
+    int errno, ret;
+    asm volatile("int %2"
+            : "=a"(errno), "=b"(ret)
+            : "i"(T_SYSCALL),
+              "a"(SYS_setvideo),
+              "b"(vga_mode)
+            : "cc", "memory");
+
     return errno ? -1 : 0;
 }
 

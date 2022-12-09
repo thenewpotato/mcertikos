@@ -7,6 +7,7 @@
 #include <dev/intr.h>
 #include <pcpu/PCPUIntro/export.h>
 #include <dev/console.h>
+#include <dev/vga.h>
 
 #include "import.h"
 
@@ -270,3 +271,24 @@ sys_mkdir(path of folder to create)
 - namex lookup parent
 - add entry inside parent
 */
+
+#define KERNEL_BUFFER_SIZE 10000
+extern char kernel_buffer[KERNEL_BUFFER_SIZE];
+
+void sys_draw(tf_t *tf) {
+    uintptr_t loc_ptr = syscall_get_arg2(tf);
+    uintptr_t bitmap_ptr = syscall_get_arg3(tf);
+    unsigned char color = syscall_get_arg4(tf);
+
+    struct rect_loc loc;
+    pt_copyin(get_curid(), loc_ptr, &loc, sizeof(struct rect_loc));
+    pt_copyin(get_curid(), bitmap_ptr, kernel_buffer, loc.height * loc.width / 8);
+    vga_set_rectangle(loc, kernel_buffer, color);
+    syscall_set_errno(tf, E_SUCC);
+}
+
+void sys_setvideo(tf_t *tf) {
+    unsigned int mode = syscall_get_arg2(tf);
+    vga_set_mode(mode);
+    syscall_set_errno(tf, E_SUCC);
+}

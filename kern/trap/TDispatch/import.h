@@ -9,6 +9,8 @@ void sys_puts(tf_t *tf);
 void sys_spawn(tf_t *tf);
 void sys_yield(tf_t *tf);
 void sys_readline(tf_t *tf);
+void sys_draw(tf_t *tf);
+void sys_setvideo(tf_t *tf);
 
 #endif /* _KERN_ */
 
