@@ -961,15 +961,41 @@ void shell_loop()
         else if (ARG_CMP(name, "pong") == 0)
         {
             CHECK_ARG_LIMIT(name, "usage: pong");
-            struct rect_loc loc;
-            loc.width = 8;
-            loc.height = 16;
-            loc.row_start = 400;
-            loc.col_start = 400;
-            char bitmap[16];
-            memset(bitmap, 0b11111111, 16);
             sys_setvideo(VGA_MODE_VIDEO);
-            sys_draw(&loc, bitmap, VGA_COLOR_MAGENTA);
+
+            struct rect_loc loc;
+            loc.width = 16;
+            loc.height = 64;
+            loc.row_start = 400;
+            loc.col_start = VGA_COLS - loc.width;
+            char bitmap[128];
+            memset(bitmap, 0b11111111, 128);
+            sys_draw(&loc, bitmap, VGA_COLOR_RED);
+
+            while (1) {
+                char c = getc();
+                if (c == 24) {
+                    break;
+                }
+                if (c == 97) {
+                    if (loc.row_start <= 0) {
+                        continue;
+                    }
+                    sys_draw(&loc, bitmap, VGA_COLOR_BLACK);
+                    loc.row_start -= 8;
+                    sys_draw(&loc, bitmap, VGA_COLOR_RED);
+                } else if (c == 115) {
+                    if (loc.row_start >= VGA_ROWS - loc.height) {
+                        continue;
+                    }
+                    sys_draw(&loc, bitmap, VGA_COLOR_BLACK);
+                    loc.row_start += 8;
+                    sys_draw(&loc, bitmap, VGA_COLOR_RED);
+                }
+                // printf("%d\n", c);
+            }
+
+            sys_setvideo(VGA_MODE_TERMINAL);
         }
         else if (ARG_CMP(name, "ping") == 0)
         {

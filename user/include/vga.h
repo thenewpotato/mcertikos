@@ -17,6 +17,9 @@ struct rect_loc {
 #define VGA_COLOR_MAGENTA   0x5
 #define VGA_COLOR_BROWN     0x6
 
+#define VGA_COLS    640
+#define VGA_ROWS    480
+
 #define VGA_MODE_VIDEO      0
 #define VGA_MODE_TERMINAL   1
 

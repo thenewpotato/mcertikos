@@ -48,6 +48,7 @@ enum __syscall_nr {
     SYS_rename,
     SYS_draw,
     SYS_setvideo,
+    SYS_getc,
 
     MAX_SYSCALL_NR  /* XXX: always put it at the end of __syscall_nr */
 };

@@ -114,6 +114,12 @@ void sys_puts(tf_t *tf)
     syscall_set_errno(tf, E_SUCC);
 }
 
+void sys_getc(tf_t *tf) {
+    char c = getchar();
+    syscall_set_errno(tf, E_SUCC);
+    syscall_set_retval1(tf, c);
+}
+
 extern uint8_t _binary___obj_user_pingpong_ping_start[];
 extern uint8_t _binary___obj_user_pingpong_pong_start[];
 extern uint8_t _binary___obj_user_pingpong_ding_start[];

@@ -41,62 +41,58 @@ void vga_plane_draw_byte(unsigned int row, unsigned int col, unsigned char bitma
     *byte = plane_active ? bitmap : 0;
 }
 
-void vga_draw_chars_plane(uint16_t plane) {
-    outw(0x3ce, 0x5);
-    outw(0x3c4, plane);
-    for (int i = terminal.cursor_start; i < terminal.cursor_start + VGA_NUM_CHARS; i++) {
-        int vga_index = i - terminal.cursor_start;
-        int char_row = vga_index / VGA_TEXT_COLS;
-        int char_col = vga_index % VGA_TEXT_COLS;
-        int c = terminal.buffer[i % VGA_NUM_CHARS];
-        if (i < terminal.cursor_pos) {
-            for (int j = 0; j < 8; j++) {
-                char bitmap = font8x8_basic[c][j];
-                char reversed = reverse_byte(bitmap);
-                //KERN_INFO("%d %d %x\n", char_row * 8, char_col * 8, font8x8_basic[c][j]);
-                vga_plane_draw_byte(char_row * 8 + j, char_col * 8, reversed, 0xf, plane);
-            }
-        } else if (i == terminal.cursor_pos) {
-            // cursor
-            for (int j = 0; j < 8; j++) {
-                char bitmap = font8x8_basic['_'][j];
-                char reversed = reverse_byte(bitmap);
-                vga_plane_draw_byte(char_row * 8 + j, char_col * 8, reversed, 0xf, plane);
-            }
-        } else {
-            // print blank
-            for (int j = 0; j < 8; j++) {
-                vga_plane_draw_byte(char_row * 8 + j, char_col * 8, 0b11111111, 0, plane);
+void vga_draw_chars(int index_start, int len) {
+    for (int pi = 0; pi < 4; pi++) {
+        outw(0x3ce, 0x5);
+        outw(0x3c4, planes[pi]);
+        for (int i = index_start; i < index_start + len; i++) {
+            int vga_index = i - terminal.cursor_start;
+            int char_row = vga_index / VGA_TEXT_COLS;
+            int char_col = vga_index % VGA_TEXT_COLS;
+            int c = terminal.buffer[i % VGA_NUM_CHARS];
+            if (i < terminal.cursor_pos) {
+                for (int j = 0; j < 8; j++) {
+                    char bitmap = font8x8_basic[c][j];
+                    char reversed = reverse_byte(bitmap);
+                    //KERN_INFO("%d %d %x\n", char_row * 8, char_col * 8, font8x8_basic[c][j]);
+                    vga_plane_draw_byte(char_row * 8 + j, char_col * 8, reversed, 0xf, planes[pi]);
+                }
+            } else if (i == terminal.cursor_pos) {
+                // cursor
+                for (int j = 0; j < 8; j++) {
+                    char bitmap = font8x8_basic['_'][j];
+                    char reversed = reverse_byte(bitmap);
+                    vga_plane_draw_byte(char_row * 8 + j, char_col * 8, reversed, 0xf, planes[pi]);
+                }
+            } else {
+                // print blank
+                for (int j = 0; j < 8; j++) {
+                    vga_plane_draw_byte(char_row * 8 + j, char_col * 8, 0b11111111, 0, planes[pi]);
+                }
             }
         }
+        outw(0x3c4, 0xf02);
     }
-    outw(0x3c4, 0xf02);
 }
 
-void vga_draw_chars() {
-    vga_draw_chars_plane(VGA_PLANE_1);
-    vga_draw_chars_plane(VGA_PLANE_2);
-    vga_draw_chars_plane(VGA_PLANE_3);
-    vga_draw_chars_plane(VGA_PLANE_4);
+void vga_draw_all_chars() {
+    vga_draw_chars(terminal.cursor_start, VGA_NUM_CHARS);
 }
 
 void vga_init(void) {
-    struct rect_loc loc;
-    loc.width = 8;
-    loc.height = 16;
-    loc.row_start = 400;
-    loc.col_start = 400;
-    char bitmap[16];
-    memset(bitmap, 0b11111111, 16);
-    vga_set_rectangle(loc, bitmap, 0x4);
 }
 
 void vga_putc(char c) {
     if (c == '\n') {
+        int old_cursor_pos = terminal.cursor_pos;
         memset(&terminal.buffer[terminal.cursor_pos % VGA_NUM_CHARS], 0,
                VGA_TEXT_COLS - terminal.cursor_pos % VGA_TEXT_COLS);
         int row = terminal.cursor_pos / VGA_TEXT_COLS;
         terminal.cursor_pos = (row + 1) * VGA_TEXT_COLS;
+        if (terminal_active) {
+            vga_draw_all_chars();
+            // vga_draw_chars(old_cursor_pos - 10, VGA_TEXT_COLS - old_cursor_pos + 11);
+        }
     } else if (c == '\t') {
         vga_putc(' ');
         vga_putc(' ');
@@ -105,18 +101,23 @@ void vga_putc(char c) {
     } else if (c == '\b') {
         if (terminal.cursor_pos > terminal.cursor_start) {
             terminal.cursor_pos--;
+            if (terminal_active) {
+                vga_draw_chars(terminal.cursor_pos, 2);
+            }
         }
     } else {
         terminal.buffer[terminal.cursor_pos % VGA_NUM_CHARS] = c;
         terminal.cursor_pos++;
+        if (terminal_active) {
+            vga_draw_chars(terminal.cursor_pos - 1, 2);
+        }
     }
 
     if (terminal.cursor_pos >= terminal.cursor_start + VGA_NUM_CHARS) {
         terminal.cursor_start += VGA_TEXT_COLS;
-    }
-
-    if (terminal_active) {
-        vga_draw_chars();
+        if (terminal_active) {
+            vga_draw_all_chars();
+        }
     }
 }
 
@@ -134,10 +135,8 @@ void vga_clear() {
 }
 
 void vga_set_rectangle(struct rect_loc loc, const char * bitmap_rect, unsigned char color) {
-    KERN_ASSERT(loc.row_start % 8 == 0);
     KERN_ASSERT(loc.col_start % 8 == 0);
     KERN_ASSERT(loc.width % 8 == 0);
-    KERN_ASSERT(loc.height % 8 == 0);
     for (int pi = 0; pi < 4; pi++) {
         outw(0x3ce, 0x5);
         outw(0x3c4, planes[pi]);
@@ -159,7 +158,7 @@ void vga_set_mode(unsigned int mode) {
         terminal_active = 0;
     } else if (mode == VGA_MODE_TERMINAL) {
         vga_clear();
-        vga_draw_chars();
+        vga_draw_all_chars();
         terminal_active = 1;
     } else {
         KERN_ASSERT(0);

@@ -4,6 +4,7 @@
 #ifdef _KERN_
 
 void sys_puts(tf_t *tf);
+void sys_getc(tf_t *tf);
 void sys_spawn(tf_t *tf);
 void sys_yield(tf_t *tf);
 void sys_draw(tf_t *tf);

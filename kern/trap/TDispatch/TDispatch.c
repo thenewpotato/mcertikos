@@ -107,6 +107,9 @@ void syscall_dispatch(tf_t *tf)
     case SYS_setvideo:
         sys_setvideo(tf);
         break;
+    case SYS_getc:
+        sys_getc(tf);
+        break;
 
     default:
         syscall_set_errno(tf, E_INVAL_CALLNR);

@@ -6,6 +6,7 @@
 #define CONSOLE_BUFFER_SIZE 512
 
 void cons_init(void);
+char getchar(void);
 void cons_enable_kbd(void);
 void cons_putc(char c);
 void cons_intr(int (*proc)(void));
