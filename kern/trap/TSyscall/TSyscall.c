@@ -298,3 +298,14 @@ void sys_setvideo(tf_t *tf) {
     vga_set_mode(mode);
     syscall_set_errno(tf, E_SUCC);
 }
+
+
+void sys_draw_pixel(tf_t * tf){
+    unsigned int row = syscall_get_arg2(tf);
+    unsigned int col = syscall_get_arg3(tf);
+    unsigned int color = syscall_get_arg4(tf);
+
+    vga_set_pixel(row, col, color);
+
+    syscall_set_errno(tf, E_SUCC);
+}

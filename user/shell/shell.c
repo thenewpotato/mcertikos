@@ -19,6 +19,16 @@ struct dirent
     char name[DIRSIZ]; // name should always include the null terminator
 };
 
+
+
+char giraffe[VGA_ROWS][VGA_COLS] = {
+#include "giraffe.inc"
+};
+
+char dolphin[VGA_ROWS][VGA_COLS] = {
+#include "dolphin.inc"
+};
+
 void shell_ls(char *relativePath)
 {
     int dirfd;
@@ -1000,6 +1010,23 @@ void shell_loop()
         else if (ARG_CMP(name, "ping") == 0)
         {
             CHECK_ARG_LIMIT(name, "usage: ping");
+            sys_setvideo(VGA_MODE_TERMINAL);
+        }
+        else if (ARG_CMP(name, "zoo") == 0) {
+            sys_setvideo(VGA_MODE_VIDEO);
+
+            for (int row = 0; row < VGA_ROWS; row++) {
+                for (int col = 0; col < VGA_COLS; col++) {
+                    sys_draw_pixel(row, col, dolphin[row][col]);
+                }
+            }
+
+            while(1) {
+                char c = getc();
+                if (c == 24) {
+                    break;
+                }
+            }
             sys_setvideo(VGA_MODE_TERMINAL);
         }
         else

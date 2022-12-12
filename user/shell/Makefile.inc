@@ -9,14 +9,7 @@ KERN_BINFILES	+= $(USER_OBJDIR)/shell/shell
 
 shell: $(USER_OBJDIR)/shell/shell
 
-$(USER_OBJDIR)/shell/shell: $(USER_LIB_OBJ) $(USER_SHELL_OBJ)
-	@echo + ld[USER/shell] $@
-	$(V)$(LD) -o $@ $(USER_LDFLAGS) $(USER_LIB_OBJ) $(USER_SHELL_OBJ) $(GCC_LIBS)
-	mv $@ $@.bak
-	$(V)$(OBJCOPY) --remove-section .note.gnu.property $@.bak $@
-	$(V)$(OBJDUMP) -S $@ > $@.asm
-	$(V)$(NM) -n $@ > $@.sym
-
+a
 $(USER_OBJDIR)/shell/%.o: $(USER_DIR)/shell/%.c
 	@echo + cc[USER/shell] $<
 	@mkdir -p $(@D)

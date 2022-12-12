@@ -110,7 +110,9 @@ void syscall_dispatch(tf_t *tf)
     case SYS_getc:
         sys_getc(tf);
         break;
-
+    case SYS_draw_pixel:
+        sys_draw_pixel(tf);
+        break;
     default:
         syscall_set_errno(tf, E_INVAL_CALLNR);
     }

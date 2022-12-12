@@ -12,10 +12,10 @@
 #define VGA_TEXT_COLS    (80)
 #define VGA_NUM_CHARS  (VGA_TEXT_ROWS * VGA_TEXT_COLS)
 
-#define VGA_PLANE_1 0x102
-#define VGA_PLANE_2 0x202
-#define VGA_PLANE_3 0x402
-#define VGA_PLANE_4 0x802
+#define VGA_PLANE_1 0x100
+#define VGA_PLANE_2 0x200
+#define VGA_PLANE_3 0x400
+#define VGA_PLANE_4 0x800
 
 #define VGA_MODE_VIDEO      0
 #define VGA_MODE_TERMINAL   1
@@ -36,6 +36,7 @@ struct rect_loc {
 void vga_init(void);
 void vga_putc(char);
 void vga_set_mode(unsigned int);
+void vga_set_pixel(unsigned int row, unsigned int col, unsigned int color);
 void vga_set_rectangle(struct rect_loc loc, const char * bitmap_rect, unsigned char color);
 
 #endif  /* _KERN_ */

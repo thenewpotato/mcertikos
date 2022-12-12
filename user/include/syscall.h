@@ -282,5 +282,21 @@ static gcc_inline int sys_getc()
     return errno ? -1 : ret;
 }
 
+static gcc_inline int sys_draw_pixel(unsigned int row, unsigned int col, unsigned int color)
+{
+    int errno, ret;
+    asm volatile("int %2"
+            : "=a"(errno), "=b"(ret)
+            : "i"(T_SYSCALL),
+              "a"(SYS_draw_pixel),
+              "b"(row),
+              "c"(col),
+              "d"(color)
+            : "cc", "memory");
+
+    return errno ? -1 : ret;
+}
+
+
 
 #endif /* !_USER_SYSCALL_H_ */

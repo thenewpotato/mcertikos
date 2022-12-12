@@ -20,6 +20,39 @@ char reverse_byte(char byte) {
     return reversed;
 }
 
+/*
+ * G G B G B G B B
+ * G: 0100
+ * B: 0101 (bright blue)
+ * 1 1 0 1 0 1 0 0
+ * 0 0 1 0 1 0 1 1
+ *
+ * 1 1 1 1 1 1 1 1
+ * 0 0 1 0 1 0 1 1 - 0001 (BLUE)
+ */
+
+void vga_set_pixel(unsigned int row, unsigned int col, unsigned int color) {
+    size_t bit_position = VGA_BUF * 8 + row * VGA_COLS + col;
+    unsigned char *byte = (unsigned char *) (bit_position / 8);
+
+    for (int pi = 0; pi < 4; pi++) {
+        outw(0x3ce, 0x5);
+        outw(0x3ce, (pi << 8) | 0x004);
+        unsigned char old_bitmap = *byte;
+        outw(0x3ce, 0xf04);
+
+        outw(0x3c4, planes[pi] | 0x002);
+        unsigned char bitmap = 1 << (7 - bit_position % 8);
+        int plane_active = (color & (1 << pi)) != 0;
+        if (plane_active) {
+            *byte = old_bitmap | bitmap;
+        }
+
+        outw(0x3c4, 0xf02);
+        outw(0x3ce, 0xf04);
+    }
+}
+
 void vga_plane_draw_byte(unsigned int row, unsigned int col, unsigned char bitmap, unsigned char color, uint16_t plane) {
     KERN_ASSERT(col % 8 == 0);
     size_t bit_position = VGA_BUF * 8 + row * VGA_COLS + col;
@@ -80,7 +113,13 @@ void vga_draw_all_chars() {
 }
 
 void vga_init(void) {
+/*    for(int row = 0; row < VGA_ROWS; row ++){
+        for(int col = 0; col < VGA_COLS; col++){
+            vga_set_pixel(row, col, 0x4);
+        }
+    }*/
 }
+
 
 void vga_putc(char c) {
     if (c == '\n') {
