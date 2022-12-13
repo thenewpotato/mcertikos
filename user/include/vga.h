@@ -16,6 +16,8 @@ struct rect_loc {
 #define VGA_COLOR_CYAN      0x3
 #define VGA_COLOR_MAGENTA   0x5
 #define VGA_COLOR_BROWN     0x6
+#define VGA_COLOR_BRIGHT_RED    0xc
+#define VGA_COLOR_BRIGHT_BLUE   0x9
 
 #define VGA_COLS    640
 #define VGA_ROWS    480

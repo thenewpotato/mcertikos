@@ -8,6 +8,7 @@
 #include <pcpu/PCPUIntro/export.h>
 #include <dev/console.h>
 #include <dev/vga.h>
+#include <dev/keyboard.h>
 
 #include "import.h"
 
@@ -115,7 +116,9 @@ void sys_puts(tf_t *tf)
 }
 
 void sys_getc(tf_t *tf) {
-    char c = getchar();
+    int c;
+    while ((c = kbd_proc_data()) == -1) {}
+    KERN_INFO("%d\n", c);
     syscall_set_errno(tf, E_SUCC);
     syscall_set_retval1(tf, c);
 }
