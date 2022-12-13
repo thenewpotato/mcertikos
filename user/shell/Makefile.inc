@@ -5,6 +5,7 @@ OBJDIRS		+= $(USER_OBJDIR)/shell
 USER_SHELL_SRC	+= $(USER_DIR)/shell/shell.c
 USER_SHELL_SRC	+= $(USER_DIR)/shell/pong.c
 USER_SHELL_SRC	+= $(USER_DIR)/shell/zoo.c
+USER_SHELL_SRC	+= $(USER_DIR)/shell/libm.a
 USER_SHELL_OBJ	:= $(patsubst %.c, $(OBJDIR)/%.o, $(USER_SHELL_SRC))
 USER_SHELL_OBJ	:= $(patsubst %.S, $(OBJDIR)/%.o, $(USER_SHELL_OBJ))
 KERN_BINFILES	+= $(USER_OBJDIR)/shell/shell

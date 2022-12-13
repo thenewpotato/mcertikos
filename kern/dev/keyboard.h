@@ -80,7 +80,7 @@
 #define KBR_RSTDONE  0xAA  /* reset complete */
 #define KBR_ECHO     0xEE  /* echo response */
 
-int kbd_proc_data(void);
+int kbd_get(void);
 void keyboard_intr(void);  // irq 4
 
 #endif  /* _KERN_ */

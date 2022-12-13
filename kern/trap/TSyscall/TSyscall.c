@@ -116,9 +116,7 @@ void sys_puts(tf_t *tf)
 }
 
 void sys_getc(tf_t *tf) {
-    int c;
-    while ((c = kbd_proc_data()) == -1) {}
-    KERN_INFO("%d\n", c);
+    int c = kbd_get();
     syscall_set_errno(tf, E_SUCC);
     syscall_set_retval1(tf, c);
 }

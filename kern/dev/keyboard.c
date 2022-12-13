@@ -98,6 +98,17 @@ static uint8_t *charcode[4] = {
     ctlmap
 };
 
+int kbd_get(void) {
+    uint8_t data;
+
+    if ((inb(KBSTATP) & KBS_DIB) == 0)
+        return -1;
+
+    data = inb(KBDATAP);
+    // KERN_INFO("%d\n", data);
+    return data;
+}
+
 /*
  * Get data from the keyboard. If we finish a character, return it. Else 0.
  * Return -1 if no data.

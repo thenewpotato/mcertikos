@@ -174,20 +174,31 @@ void vga_clear() {
 }
 
 void vga_set_rectangle(struct rect_loc loc, const char * bitmap_rect, unsigned char color) {
-    KERN_ASSERT(loc.col_start % 8 == 0);
-    KERN_ASSERT(loc.width % 8 == 0);
-    for (int pi = 0; pi < 4; pi++) {
-        outw(0x3ce, 0x5);
-        outw(0x3c4, planes[pi] | 0x002);
+    if (loc.col_start % 8 == 0 && loc.width % 8 == 0) {
+        // optimized
+        for (int pi = 0; pi < 4; pi++) {
+            outw(0x3ce, 0x5);
+            outw(0x3c4, planes[pi] | 0x002);
+            for (int i = 0; i < loc.height; i++) {
+                for (int j = 0; j < loc.width; j+=8) {
+                    unsigned int row = loc.row_start + i;
+                    unsigned int col = loc.col_start + j;
+                    unsigned char bitmap = bitmap_rect[(i * loc.width + j) / 8];
+                    vga_plane_draw_byte(row, col, bitmap, color, planes[pi]);
+                }
+            }
+            outw(0x3c4, 0xf02);
+        }
+    } else {
         for (int i = 0; i < loc.height; i++) {
             for (int j = 0; j < loc.width; j+=8) {
                 unsigned int row = loc.row_start + i;
                 unsigned int col = loc.col_start + j;
-                unsigned char bitmap = bitmap_rect[(i * loc.width + j) / 8];
-                vga_plane_draw_byte(row, col, bitmap, color, planes[pi]);
+                if (bitmap_rect[row * VGA_COLS + col]) {
+                    vga_set_pixel(row, col, color);
+                }
             }
         }
-        outw(0x3c4, 0xf02);
     }
 }
 
