@@ -15,6 +15,11 @@ struct ball_state {
     double y;
     double angle;
 };
+struct game_state {
+    int sleep_ball;
+    int left_score;
+    int right_score;
+};
 
 #define PADDLE_WIDTH    16
 #define PADDLE_HEIGHT   64
@@ -48,7 +53,7 @@ void draw_ball(struct ball_state b, unsigned char color) {
 }
 
 #define PI  3.14159265359
-#define BALL_VELOCITY   4
+#define BALL_VELOCITY   8
 
 void pong_run() {
     int aDown = 0;
@@ -56,12 +61,14 @@ void pong_run() {
     int kDown = 0;
     int lDown = 0;
 
-    struct ball_state ball = { VGA_ROWS / 2, VGA_COLS / 2, 0.51};
-    struct rect_loc left_paddle = {0, 0, PADDLE_WIDTH, PADDLE_HEIGHT};
-    struct rect_loc right_paddle = {0, VGA_COLS - PADDLE_WIDTH, PADDLE_WIDTH, PADDLE_HEIGHT};
+    struct ball_state ball = { VGA_ROWS / 2, VGA_COLS / 2, PI};
+    struct rect_loc left_paddle = {(VGA_ROWS - PADDLE_HEIGHT) / 2, 0, PADDLE_WIDTH, PADDLE_HEIGHT};
+    struct rect_loc right_paddle = {(VGA_ROWS - PADDLE_HEIGHT) / 2, VGA_COLS - PADDLE_WIDTH, PADDLE_WIDTH, PADDLE_HEIGHT};
     char bitmap_paddle[128];
     memset(bitmap_paddle, 0b11111111, 128);
     memset(bitmap_ball, 0b11111111, 8);
+    struct rect_loc left_line = { 0, PADDLE_WIDTH, 1, VGA_ROWS };
+    struct rect_loc right_line = { 0, VGA_COLS - PADDLE_WIDTH - 1, 1, VGA_ROWS };
 
     sys_setvideo(VGA_MODE_VIDEO);
 
@@ -69,6 +76,10 @@ void pong_run() {
     sys_draw(&left_paddle, bitmap_paddle, COLOR_LEFT_PADDLE);
     sys_draw(&right_paddle, bitmap_paddle, COLOR_RIGHT_PADDLE);
     draw_ball(ball, COLOR_BALL);
+    sys_draw(&left_line, bitmap_paddle, VGA_COLOR_GRAY);
+    sys_draw(&right_line, bitmap_paddle, VGA_COLOR_GRAY);
+
+    struct game_state state = { 100 };
 
     int counter = 0;
     while (1) {
@@ -129,18 +140,23 @@ void pong_run() {
                 right_paddle.row_start += 8;
             }
         }
-        ball.x -= sin(ball.angle) * BALL_VELOCITY;
-        ball.y += cos(ball.angle) * BALL_VELOCITY;
+        if (state.sleep_ball) {
+            state.sleep_ball--;
+        } else {
+            ball.x -= sin(ball.angle) * BALL_VELOCITY;
+            ball.y += cos(ball.angle) * BALL_VELOCITY;
+        }
         if (ball.y <= PADDLE_WIDTH) {
             if (ball.x + BALL_HEIGHT >= left_paddle.row_start && ball.x <= left_paddle.row_start + PADDLE_HEIGHT) {
                 int paddle_middle = left_paddle.row_start + PADDLE_HEIGHT / 2;
                 ball.angle = (paddle_middle - ball.x) / 32 * 1.2;
                 ball.y = PADDLE_WIDTH + 2;
             } else {
-                // TODO: SCORE
                 ball.x = VGA_ROWS / 2;
                 ball.y = VGA_COLS / 2;
-                ball.angle = PI;
+                ball.angle = 0;
+                state.sleep_ball = 100;
+                state.right_score++;
             }
         }
         if (ball.y >= VGA_COLS - PADDLE_WIDTH) {
@@ -149,10 +165,11 @@ void pong_run() {
                 ball.angle = (ball.x - paddle_middle)/ 32 * 1.2 + PI;
                 ball.y = VGA_COLS - PADDLE_WIDTH - 2;
             } else {
-                // TODO: SCORE
                 ball.x = VGA_ROWS / 2;
                 ball.y = VGA_COLS / 2;
                 ball.angle = PI;
+                state.sleep_ball = 100;
+                state.left_score++;
             }
         }
         if (ball.x <= 0 || ball.x + BALL_HEIGHT >= VGA_ROWS) {
@@ -172,6 +189,8 @@ void pong_run() {
             draw_ball(old_ball, VGA_COLOR_BLACK);
             draw_ball(ball, COLOR_BALL);
         }
+        sys_draw(&left_line, bitmap_paddle, VGA_COLOR_GRAY);
+        sys_draw(&right_line, bitmap_paddle, VGA_COLOR_GRAY);
     }
 
     sys_setvideo(VGA_MODE_TERMINAL);
