@@ -4,6 +4,8 @@
 #include <x86.h>
 #include <file.h>
 #include <gcc.h>
+#include "pong.h"
+#include "zoo.h"
 
 #define exit(...) return __VA_ARGS__
 #define T_DIR 1           // Directory
@@ -17,16 +19,6 @@ struct dirent
 {
     uint16_t inum;
     char name[DIRSIZ]; // name should always include the null terminator
-};
-
-
-
-char giraffe[VGA_ROWS][VGA_COLS] = {
-#include "giraffe.inc"
-};
-
-char dolphin[VGA_ROWS][VGA_COLS] = {
-#include "dolphin.inc"
 };
 
 void shell_ls(char *relativePath)
@@ -971,63 +963,11 @@ void shell_loop()
         else if (ARG_CMP(name, "pong") == 0)
         {
             CHECK_ARG_LIMIT(name, "usage: pong");
-            sys_setvideo(VGA_MODE_VIDEO);
-
-            struct rect_loc loc;
-            loc.width = 16;
-            loc.height = 64;
-            loc.row_start = 400;
-            loc.col_start = VGA_COLS - loc.width;
-            char bitmap[128];
-            memset(bitmap, 0b11111111, 128);
-            sys_draw(&loc, bitmap, VGA_COLOR_RED);
-
-            while (1) {
-                char c = getc();
-                if (c == 24) {
-                    break;
-                }
-                if (c == 97) {
-                    if (loc.row_start <= 0) {
-                        continue;
-                    }
-                    sys_draw(&loc, bitmap, VGA_COLOR_BLACK);
-                    loc.row_start -= 8;
-                    sys_draw(&loc, bitmap, VGA_COLOR_RED);
-                } else if (c == 115) {
-                    if (loc.row_start >= VGA_ROWS - loc.height) {
-                        continue;
-                    }
-                    sys_draw(&loc, bitmap, VGA_COLOR_BLACK);
-                    loc.row_start += 8;
-                    sys_draw(&loc, bitmap, VGA_COLOR_RED);
-                }
-                // printf("%d\n", c);
-            }
-
-            sys_setvideo(VGA_MODE_TERMINAL);
-        }
-        else if (ARG_CMP(name, "ping") == 0)
-        {
-            CHECK_ARG_LIMIT(name, "usage: ping");
-            sys_setvideo(VGA_MODE_TERMINAL);
+            pong_run();
         }
         else if (ARG_CMP(name, "zoo") == 0) {
-            sys_setvideo(VGA_MODE_VIDEO);
-
-            for (int row = 0; row < VGA_ROWS; row++) {
-                for (int col = 0; col < VGA_COLS; col++) {
-                    sys_draw_pixel(row, col, dolphin[row][col]);
-                }
-            }
-
-            while(1) {
-                char c = getc();
-                if (c == 24) {
-                    break;
-                }
-            }
-            sys_setvideo(VGA_MODE_TERMINAL);
+            CHECK_ARG_LIMIT(name, "usage: zoo");
+            zoo_run();
         }
         else
         {

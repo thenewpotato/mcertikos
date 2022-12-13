@@ -178,7 +178,7 @@ void vga_set_rectangle(struct rect_loc loc, const char * bitmap_rect, unsigned c
     KERN_ASSERT(loc.width % 8 == 0);
     for (int pi = 0; pi < 4; pi++) {
         outw(0x3ce, 0x5);
-        outw(0x3c4, planes[pi]);
+        outw(0x3c4, planes[pi] | 0x002);
         for (int i = 0; i < loc.height; i++) {
             for (int j = 0; j < loc.width; j+=8) {
                 unsigned int row = loc.row_start + i;
