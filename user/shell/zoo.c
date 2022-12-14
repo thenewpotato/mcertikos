@@ -6,22 +6,22 @@
 #define MAX_IMAGES 6
 char images[MAX_IMAGES][VGA_ROWS][VGA_COLS] = {
         {
-#include "include/giraffe.inc"
+#include "images/giraffe.inc"
         },
         {
-#include "include/dolphin.inc"
+#include "images/dolphin.inc"
         },
         {
-#include "include/peacock.inc"
+#include "images/peacock.inc"
         },
         {
-#include "include/tiger.inc"
+#include "images/tiger.inc"
         },
         {
-#include "include/jaguar.inc"
+#include "images/jaguar.inc"
         },
         {
-#include "include/swan.inc"
+#include "images/swan.inc"
         },
 };
 
