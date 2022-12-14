@@ -3,36 +3,29 @@
 #include <syscall.h>
 #include <stdio.h>
 
-//char giraffe[VGA_ROWS][VGA_COLS] = {
-//#include "giraffe.inc"
-//};
-//
-//char dolphin[VGA_ROWS][VGA_COLS] = {
-//#include "dolphin.inc"
-//};
-
-char images[6][VGA_ROWS][VGA_COLS] = {
-            {
-    #include "include/giraffe.inc"
-            },
-            {
-    #include "include/dolphin.inc"
-            },
-            {
-    #include "include/peacock.inc"
-            },
-            {
-    #include "include/tiger.inc"
-            },
-            {
-    #include "include/jaguar.inc"
-            },
-            {
-    #include "include/swan.inc"
-            },
-   };
-int current = 0;
 #define MAX_IMAGES 6
+char images[MAX_IMAGES][VGA_ROWS][VGA_COLS] = {
+        {
+#include "include/giraffe.inc"
+        },
+        {
+#include "include/dolphin.inc"
+        },
+        {
+#include "include/peacock.inc"
+        },
+        {
+#include "include/tiger.inc"
+        },
+        {
+#include "include/jaguar.inc"
+        },
+        {
+#include "include/swan.inc"
+        },
+};
+
+int current = 0;
 
 void render() {
     sys_setvideo(VGA_MODE_VIDEO);
@@ -44,52 +37,32 @@ void render() {
 }
 
 void zoo_run() {
-
-
-
     sys_setvideo(VGA_MODE_VIDEO);
 
     render();
 
-    while(1) {
-        // 75 is right 77 is previous
+    while (1) {
         char c = getc();
-            if(c != -1){
-        printf("%d\n", c);
-            }
-
-//        if (c != -1){
+//        if (c != -1) {
 //            printf("%d\n", c);
 //        }
         if (c == 45) {
             break;
-        }
-        else if(c == -58){
-            if(current == MAX_IMAGES - 1){
+        } else if (c == 77) {
+            if (current == MAX_IMAGES - 1) {
                 current = 0;
-            }
-            else{
-                current ++;
+            } else {
+                current++;
             }
             render();
-        }
-        else if(c == -72){
-            if(current == 0){
+        } else if (c == 75) {
+            if (current == 0) {
                 current = MAX_IMAGES - 1;
-            }
-            else{
+            } else {
                 current--;
             }
             render();
         }
-        // } else if (c == 75 || c == 77) {
-        //     if (current == 0) {
-        //         current = 1;
-        //     } else {
-        //         current = 0;
-        //     }
-        //     render(images[current]);
-        // }
     }
     sys_setvideo(VGA_MODE_TERMINAL);
 }
