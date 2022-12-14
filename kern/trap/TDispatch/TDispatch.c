@@ -107,8 +107,8 @@ void syscall_dispatch(tf_t *tf)
     case SYS_setvideo:
         sys_setvideo(tf);
         break;
-    case SYS_getc:
-        sys_getc(tf);
+    case SYS_getkey:
+        sys_getkey(tf);
         break;
     case SYS_draw_pixel:
         sys_draw_pixel(tf);

@@ -11,7 +11,7 @@ void sys_yield(tf_t *tf);
 void sys_readline(tf_t *tf);
 void sys_draw(tf_t *tf);
 void sys_setvideo(tf_t *tf);
-void sys_getc(tf_t *tf);
+void sys_getkey(tf_t *tf);
 void sys_draw_pixel(tf_t *tf);
 
 #endif /* _KERN_ */

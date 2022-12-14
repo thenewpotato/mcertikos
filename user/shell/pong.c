@@ -83,7 +83,7 @@ void pong_run() {
 
     int counter = 0;
     while (1) {
-        int c = getc();
+        int c = sys_getkey();
         if (c == 30) {
             aDown = 1;
         } else if (c == 158) {

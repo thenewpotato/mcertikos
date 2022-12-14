@@ -115,7 +115,7 @@ void sys_puts(tf_t *tf)
     syscall_set_errno(tf, E_SUCC);
 }
 
-void sys_getc(tf_t *tf) {
+void sys_getkey(tf_t *tf) {
     int c = kbd_get();
     syscall_set_errno(tf, E_SUCC);
     syscall_set_retval1(tf, c);

@@ -42,7 +42,7 @@ void zoo_run() {
     render();
 
     while (1) {
-        char c = getc();
+        char c = sys_getkey();
 //        if (c != -1) {
 //            printf("%d\n", c);
 //        }

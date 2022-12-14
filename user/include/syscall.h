@@ -270,13 +270,13 @@ static gcc_inline int sys_setvideo(unsigned int vga_mode)
     return errno ? -1 : 0;
 }
 
-static gcc_inline int sys_getc()
+static gcc_inline int sys_getkey()
 {
     int errno, ret;
     asm volatile("int %2"
             : "=a"(errno), "=b"(ret)
             : "i"(T_SYSCALL),
-              "a"(SYS_getc)
+              "a"(SYS_getkey)
             : "cc", "memory");
 
     return errno ? -1 : ret;
