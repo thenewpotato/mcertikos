@@ -183,7 +183,8 @@ void vga_set_rectangle(struct rect_loc loc, const char * bitmap_rect, unsigned c
                 for (int j = 0; j < loc.width; j+=8) {
                     unsigned int row = loc.row_start + i;
                     unsigned int col = loc.col_start + j;
-                    unsigned char bitmap = bitmap_rect[(i * loc.width + j) / 8];
+                    unsigned char bitmap = 0b11111111;
+                    // unsigned char bitmap = bitmap_rect[(i * loc.width + j) / 8];
                     vga_plane_draw_byte(row, col, bitmap, color, planes[pi]);
                 }
             }
@@ -194,9 +195,7 @@ void vga_set_rectangle(struct rect_loc loc, const char * bitmap_rect, unsigned c
             for (int j = 0; j < loc.width; j+=8) {
                 unsigned int row = loc.row_start + i;
                 unsigned int col = loc.col_start + j;
-                if (bitmap_rect[row * VGA_COLS + col]) {
-                    vga_set_pixel(row, col, color);
-                }
+                vga_set_pixel(row, col, color);
             }
         }
     }
