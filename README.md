@@ -16,7 +16,7 @@ List here the following info:
 
 # CPSC 422 Lab 6 (Project 1: Video Mode)
 
-You can preview this README file on Github (with screenshots and GIFs!): https://github.com/thenewpotato/mcertikos/tree/lab6
+You can preview this README file on GitHub (with screenshots and GIFs!): https://github.com/thenewpotato/mcertikos/tree/lab6
 
 ## Collaborators
 - Tiger Wang (jw2723)
@@ -29,6 +29,8 @@ You can preview this README file on Github (with screenshots and GIFs!): https:/
 On a physical zoo machine:
 - Run `make` in the `mcertikos` directory to build
 - Run `make qemu` to launch the QEMU virtual machine, which launches a VGA graphics window with resolution 640x480
+
+To quit QEMU, focus on the terminal window (not the VGA monitor) and press `CTRL-A X`.
 
 ## Testing
 
@@ -69,17 +71,24 @@ To see arbitrary images in QEMU, here is a github repository that provides a pyt
 ### Kernel
 In order to switch `qemu` from video mode to graphic mode, we first had to change the bootloader code in `boot0.S.` We did so by changing the argument passed in to BIOS's software interrupt from $0x03 to $0x12 which specifies VGA 640x480 16 color mode.  
 
-After enabling graphic mode, we then implemented the functionality to draw text onto the screen to mimic terminal behavior. In `kern/dev/vga.c` we implemented the functionality for drawing characters onto the screen using a 8x8 bitmap font-header (`vga_draw_chars`), drawing a rectangle on the screen(`vga_set_rectangle`), and also drawing a single pixel on the screen (`vga_set_pixel`). For each of these implementaitons, since video mode 12 has a four planar layout, in order to draw output on the screen, we needed to write data to four specific port-mapped devices representing the four color planes. To do this, we used the outw command to specify the port as well as the index within the port to get data from. Drawing pixel by pixel was slightly challenging as video mode only supoprts writing a byte of memory at a time which is 8 pixels. To address this nuance, when drawing pixel by pixel in order to avoid overwriting data in the neighboring pixels, we had to first issue a read from each of the four planes. 
-To allow users to turn on and off "video" mode we implemented `vga_set_mode` which through `sys_setvideo` allows the user to either clear the VGA graphics window or render the buffer of text from the terminal. We also chose to expose drawing pixels and rectangles to the user and thus implemented the system call interfaces `sys_drawpixel` and `sys_draw`. 
+After enabling graphic mode, we then implemented the functionality to draw text onto the screen to mimic terminal behavior. In `kern/dev/vga.c` we implemented the functionality for drawing characters onto the screen using a 8x8 bitmap font-header (`vga_draw_chars`), drawing a rectangle on the screen(`vga_set_rectangle`), and also drawing a single pixel on the screen (`vga_set_pixel`). For each of these implementations, since video mode 12 has a four planar layout, in order to draw output on the screen, we needed to write data to four specific port-mapped devices representing the four color planes. To do this, we used the `outw` command to specify the port as well as the index within the port to get data from. Drawing pixel by pixel was slightly challenging as video mode only supoprts writing a byte of memory at a time which is 8 pixels. To address this nuance, when drawing pixel by pixel in order to avoid overwriting data in the neighboring pixels, we had to first issue a read from each of the four planes. 
+To allow users to turn on and off "video" mode we implemented `vga_set_mode` which through `sys_setvideo` allows the user to either clear the VGA graphics window or render the buffer of text from the terminal. We also chose to expose drawing pixels and rectangles to the user and thus implemented the system call interfaces `sys_drawpixel` and `sys_draw`. User programs can flexibly choose which system call interface to use depending on their needs. `sys_drawpixel` offers finer control, as the user program can control each individual pixel on the screen. However, this fine-grained control comes at the expense of slower performance. To achieve better performance, the user program should use `sys_draw` to draw entire rectangular areas at a time. In our two user programs, we found both syscall interfaces useful. While in Pong, it frequently sufficed to draw rectangular areas instead of pixels, Zoo required the fine-grained control over pixels that `sys_drawpixel` offered.
 
-We also implemented a new system call, `sys_getkey`. This system call returns output directly from keyboard I/O and allowed us to circumvent using cons_getc. Ultimately, this enabled multi-player support for Pong (both player 1 and player 2 can move their paddles simultaneously) and also provided finer grain control over the paddles. 
+We also implemented a new system call, `sys_getkey`. This system call returns output directly from keyboard I/O and allowed us to circumvent using `cons_getc`. Ultimately, this enabled multiplayer support for Pong (both player 1 and player 2 can move their paddles simultaneously) and also provided finer grain control over the paddles. 
 
 ### Pong Program
-In the `Pong` user program, we first toggled VGA video mode and set up the environment for pong. To do so, we used our `sys_draw` system call to draw both player1 and player2 paddles, the pong ball, and also goal lines. Afterwards, to provide support for smooth control of the paddle we used our `sys_getkey` to register user input. In order to support the logic for the ball bouncing at various angles depending on incident of collision, we needed a way to compute the sine and cosine of a given angle. Given that we could not directly import the math library, we found a library called fdlibm online with both functions and then compiled it to a static library file labeled `libm.a` and included it within our user program directory. To ensure the best user experience possible, we implemented a rendering logic similar to React's archictecture, only rerendering certain objects when necessary. Furthemore, we also spent an apt amount of time tweaking certain parameters of our game such as grace perio upon scoring and ball speed to better the user experience.
+In the `Pong` user program, we first toggled VGA video mode and set up the environment for pong. To do so, we used our `sys_draw` system call to draw both player1 and player2 paddles, the pong ball, and also goal lines. Afterwards, to provide support for smooth control of the paddle we used our `sys_getkey` to register user input. In order to support the logic for the ball bouncing at various angles depending on incident of collision, we needed a way to compute the sine and cosine of a given angle. Given that we could not directly import the math library, we found a library called `fdlibm` online with both functions and then compiled it to a static library file labeled `libm.a` and included it within our user program directory. To ensure the best user experience possible, we implemented a rendering logic similar to React's architecture, only re-rendering certain objects when necessary. Furthermore, we also spent an apt amount of time tweaking certain parameters of our game such as a grace period upon scoring and ball speed to better the user experience.
 
 
 ### Zoo Program
 In the `Zoo` user program, we defined a global array of images with each image being loaded from the `user/pong/images` folder. We then toggled VGA video mode and used our system call `sys_draw_pixel` to render specified images pixel by pixel. Then, using our `sys_getkey` system call, we capture keyboard input to allow users to switch back and forth between images (see controls in testing section above).
 
+## References
 
-### Notes
+To complete this project, we found the reference materials on the following websites particularly helpful, especially in learning about how VGA works:
+- http://www.techhelpmanual.com/89-video_memory_layouts.html
+- https://wiki.osdev.org/Drawing_In_Protected_Mode
+- https://github.com/dhepper/font8x8/blob/master/font8x8_basic.h
+- https://web.stanford.edu/class/cs140/projects/pintos/specs/freevga/vga/vgamem.htm
+- https://stanislavs.org/helppc/int_10.html
+- https://netlib.org/fdlibm/
